@@ -1,0 +1,69 @@
+@import "tailwindcss";
+
+@custom-variant dark (&:where(.dark, .dark *));
+
+:root {
+  --background: #ffffff;
+  --foreground: #171717;
+}
+
+.dark {
+  --background: #111827;
+  --foreground: #f9fafb;
+}
+
+body {
+  background-color: var(--background);
+  color: var(--foreground);
+}
+
+/* Dark mode overrides using .dark selector */
+.dark .bg-white { background-color: #1f2937; }
+.dark .bg-gray-50 { background-color: #111827; }
+.dark .bg-gray-100 { background-color: #1f2937; }
+.dark .bg-gray-200 { background-color: #374151; }
+.dark .bg-gray-700 { background-color: #374151; }
+.dark .bg-gray-800 { background-color: #1f2937; }
+.dark .bg-gray-900 { background-color: #111827; }
+
+.dark .text-white { color: #f9fafb; }
+.dark .text-gray-900 { color: #f9fafb; }
+.dark .text-gray-800 { color: #f3f4f6; }
+.dark .text-gray-700 { color: #e5e7eb; }
+.dark .text-gray-600 { color: #d1d5db; }
+.dark .text-gray-500 { color: #9ca3af; }
+.dark .text-gray-400 { color: #9ca3af; }
+.dark .text-gray-300 { color: #d1d5db; }
+
+.dark .border-gray-200 { border-color: #374151; }
+.dark .border-gray-300 { border-color: #4b5563; }
+.dark .border-gray-600 { border-color: #4b5563; }
+.dark .border-gray-700 { border-color: #374151; }
+
+.dark .hover\:bg-gray-50:hover { background-color: #1f2937; }
+.dark .hover\:bg-gray-100:hover { background-color: #374151; }
+.dark .hover\:bg-gray-200:hover { background-color: #4b5563; }
+.dark .hover\:bg-gray-700:hover { background-color: #4b5563; }
+.dark .hover\:bg-gray-800:hover { background-color: #374151; }
+.dark .hover\:bg-gray-900\/30:hover { background-color: rgba(17, 24, 39, 0.3); }
+
+.dark .hover\:text-gray-900:hover { color: #f3f4f6; }
+.dark .hover\:text-white:hover { color: #ffffff; }
+
+.dark .bg-blue-50 { background-color: rgba(30, 58, 138, 0.3); }
+.dark .bg-blue-900 { background-color: #1e3a8a; }
+.dark .bg-blue-900\/30 { background-color: rgba(30, 58, 138, 0.3); }
+
+.dark .text-blue-600 { color: #60a5fa; }
+.dark .text-blue-400 { color: #60a5fa; }
+
+.dark .bg-yellow-100 { background-color: rgba(161, 98, 7, 0.3); }
+.dark .bg-yellow-900 { background-color: #713f12; }
+
+.dark .bg-green-100 { background-color: rgba(6, 78, 59, 0.3); }
+.dark .bg-green-900 { background-color: #064e3b; }
+
+.dark .bg-red-100 { background-color: rgba(127, 29, 29, 0.3); }
+.dark .bg-red-900 { background-color: #7f1d1d; }
+
+.dark .bg-blue-50\/30 { background-color: rgba(30, 58, 138, 0.3); }
