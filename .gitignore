@@ -25,3 +25,10 @@ build/
 *.log
 npm-debug.log*
 yarn-debug.log*
+
+# Next.js / Vercel
+.next/
+.vercel/
+/out/
+*.tsbuildinfo
+next-env.d.ts
