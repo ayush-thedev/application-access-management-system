@@ -3,6 +3,7 @@
 import { ThemeProvider } from "next-themes";
 import { AuthProvider } from "@/lib/AuthContext";
 import { ToastProvider } from "@/components/Toast";
+import { TooltipProvider } from "@/components/ui/tooltip";
 import { ReactNode } from "react";
 import { usePathname, useRouter } from "next/navigation";
 import { useAuth } from "@/lib/AuthContext";
@@ -21,8 +22,8 @@ function AuthGuard({ children }: { children: ReactNode }) {
 
   if (isLoading) {
     return (
-      <div className="min-h-screen flex items-center justify-center bg-gray-50 dark:bg-gray-900">
-        <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600"></div>
+      <div className="min-h-screen flex items-center justify-center bg-background">
+        <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary"></div>
       </div>
     );
   }
@@ -32,12 +33,14 @@ function AuthGuard({ children }: { children: ReactNode }) {
 
 export function Providers({ children }: { children: ReactNode }) {
   return (
-    <ThemeProvider attribute="class" defaultTheme="light" enableSystem disableTransitionOnChange>
-      <AuthProvider>
-        <ToastProvider>
-          <AuthGuard>{children}</AuthGuard>
-        </ToastProvider>
-      </AuthProvider>
+    <ThemeProvider attribute="class" defaultTheme="dark" enableSystem disableTransitionOnChange>
+      <TooltipProvider>
+        <AuthProvider>
+          <ToastProvider>
+            <AuthGuard>{children}</AuthGuard>
+          </ToastProvider>
+        </AuthProvider>
+      </TooltipProvider>
     </ThemeProvider>
   );
 }

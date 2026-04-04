@@ -148,7 +148,7 @@ def approve_request(request_id: int, admin_username: str, expires_at: str = None
     """, (admin['id'], expiry, request_id))
     
     cursor.execute("""
-        INSERT INTO user_roles (user_id, role_id, assigned_at, expires_at)
+        INSERT IGNORE INTO user_roles (user_id, role_id, assigned_at, expires_at)
         VALUES (%s, %s, NOW(), %s)
     """, (request['user_id'], request['role_id'], expiry))
     
@@ -164,7 +164,7 @@ def approve_request(request_id: int, admin_username: str, expires_at: str = None
 
 
 @router.patch("/{request_id}/reject", response_model=RequestResponse)
-def reject_request(request_id: int, admin_username: str, denial_reason: str):
+def reject_request(request_id: int, admin_username: str, denial_reason: str = ""):
     conn = get_db_connection()
     cursor = conn.cursor(dictionary=True)
     

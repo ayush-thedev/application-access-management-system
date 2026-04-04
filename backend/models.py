@@ -26,6 +26,7 @@ class UserResponse(UserBase):
 
 class UserLogin(BaseModel):
     username: str
+    password: str
 
 
 # Application schemas
@@ -83,7 +84,7 @@ class UserRoleResponse(UserRoleBase):
 # Access_Request schemas
 class RequestBase(BaseModel):
     role_id: int
-    justification: str
+    justification: str = ""
     priority: str = "medium"
 
 

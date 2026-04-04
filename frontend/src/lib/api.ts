@@ -19,10 +19,10 @@ async function fetchApi<T>(endpoint: string, options?: RequestInit): Promise<T> 
 
 export const api = {
   // Auth
-  login: (username: string) =>
+  login: (username: string, password: string) =>
     fetchApi<import("./types").LoginResponse>("/auth/login", {
       method: "POST",
-      body: JSON.stringify({ username }),
+      body: JSON.stringify({ username, password }),
     }),
 
   // Applications

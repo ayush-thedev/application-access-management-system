@@ -27,12 +27,16 @@ def login(user: UserLogin):
     conn.close()
     
     if not db_user:
-        raise HTTPException(status_code=401, detail="User not found")
+        raise HTTPException(status_code=401, detail="Invalid username or password")
     
     user_data = UserResponse(**db_user)
     
     if user_data.status != "active":
         raise HTTPException(status_code=403, detail="User account is inactive")
+    
+    expected_password = "admin01" if user_data.role == "admin" else "user01"
+    if user.password != expected_password:
+        raise HTTPException(status_code=401, detail="Invalid username or password")
     
     role_text = "Administrator" if user_data.role == "admin" else "User"
     return LoginResponse(

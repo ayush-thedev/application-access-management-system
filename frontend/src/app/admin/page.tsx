@@ -4,38 +4,111 @@ import { useState, useEffect } from "react";
 import { useAuth } from "@/lib/AuthContext";
 import { api } from "@/lib/api";
 import { AccessRequest } from "@/lib/types";
-import { useToast } from "@/components/Toast";
+import { toast } from "sonner";
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import { Badge } from "@/components/ui/badge";
+import { Button } from "@/components/ui/button";
+import {
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow,
+} from "@/components/ui/table";
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
+import { Textarea } from "@/components/ui/textarea";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import { Checkbox } from "@/components/ui/checkbox";
+import { Skeleton } from "@/components/ui/skeleton";
+import { Empty, EmptyDescription, EmptyTitle } from "@/components/ui/empty";
+import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import {
+  Clock,
+  CheckCircle2,
+  XCircle,
+  Search,
+  AlertCircle,
+  Plus,
+  Trash2,
+  Timer,
+  TrendingUp,
+} from "lucide-react";
 
 function StatusBadge({ status }: { status: string }) {
-  const styles = {
-    pending: "bg-yellow-100 dark:bg-yellow-900 text-yellow-800 dark:text-yellow-200",
-    approved: "bg-green-100 dark:bg-green-900 text-green-800 dark:text-green-200",
-    rejected: "bg-red-100 dark:bg-red-900 text-red-800 dark:text-red-200",
+  const variantMap: Record<string, "default" | "secondary" | "destructive" | "outline"> = {
+    pending: "secondary",
+    approved: "default",
+    rejected: "destructive",
   };
-  const labels = { pending: "Pending", approved: "Approved", rejected: "Rejected" };
+  const labels: Record<string, string> = {
+    pending: "Pending",
+    approved: "Approved",
+    rejected: "Rejected",
+  };
   return (
-    <span className={`px-2 py-1 text-xs font-medium rounded-full ${styles[status as keyof typeof styles] || styles.pending}`}>
-      {labels[status as keyof typeof labels] || status}
-    </span>
+    <Badge variant={variantMap[status] || "outline"}>
+      {labels[status] || status}
+    </Badge>
   );
 }
 
 function PriorityBadge({ priority }: { priority: string }) {
-  const styles = {
-    low: "bg-gray-100 dark:bg-gray-700 text-gray-600 dark:text-gray-300",
-    medium: "bg-blue-100 dark:bg-blue-900 text-blue-800 dark:text-blue-200",
-    high: "bg-red-100 dark:bg-red-900 text-red-800 dark:text-red-200",
+  const variantMap: Record<string, "default" | "secondary" | "destructive" | "outline"> = {
+    low: "outline",
+    medium: "secondary",
+    high: "destructive",
   };
   return (
-    <span className={`px-2 py-1 text-xs font-medium rounded-full ${styles[priority as keyof typeof styles] || styles.medium}`}>
+    <Badge variant={variantMap[priority] || "outline"}>
       {priority.charAt(0).toUpperCase() + priority.slice(1)}
-    </span>
+    </Badge>
+  );
+}
+
+function StatCard({
+  title,
+  value,
+  icon: Icon,
+  description,
+}: {
+  title: string;
+  value: number;
+  icon: React.ElementType;
+  description: string;
+}) {
+  return (
+    <Card>
+      <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+        <CardTitle className="text-sm font-medium">{title}</CardTitle>
+        <Icon className="size-4 text-muted-foreground" />
+      </CardHeader>
+      <CardContent>
+        <div className="text-2xl font-bold">{value}</div>
+        <p className="text-xs text-muted-foreground">{description}</p>
+      </CardContent>
+    </Card>
   );
 }
 
 export default function AdminPage() {
   const { user } = useAuth();
-  const { showToast } = useToast();
   const [requests, setRequests] = useState<AccessRequest[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [selectedRequests, setSelectedRequests] = useState<number[]>([]);
@@ -43,6 +116,7 @@ export default function AdminPage() {
   const [rejectReason, setRejectReason] = useState("");
   const [selectedRequestId, setSelectedRequestId] = useState<number | null>(null);
   const [searchTerm, setSearchTerm] = useState("");
+  const [filterPriority, setFilterPriority] = useState("all");
 
   useEffect(() => {
     loadPendingRequests();
@@ -52,8 +126,8 @@ export default function AdminPage() {
     try {
       const data = await api.getPendingRequests();
       setRequests(data);
-    } catch (error) {
-      showToast("Failed to load requests", "error");
+    } catch {
+      toast.error("Failed to load requests");
     } finally {
       setIsLoading(false);
     }
@@ -63,10 +137,10 @@ export default function AdminPage() {
     if (!user) return;
     try {
       await api.approveRequest(requestId, user.username);
-      showToast("Request approved successfully!", "success");
+      toast.success("Request approved successfully!");
       loadPendingRequests();
     } catch (error) {
-      showToast(error instanceof Error ? error.message : "Failed to approve request", "error");
+      toast.error(error instanceof Error ? error.message : "Failed to approve request");
     }
   };
 
@@ -76,11 +150,11 @@ export default function AdminPage() {
       for (const id of selectedRequests) {
         await api.approveRequest(id, user.username);
       }
-      showToast(`${selectedRequests.length} requests approved!`, "success");
+      toast.success(`${selectedRequests.length} request(s) approved!`);
       setSelectedRequests([]);
       loadPendingRequests();
     } catch (error) {
-      showToast(error instanceof Error ? error.message : "Failed to approve requests", "error");
+      toast.error(error instanceof Error ? error.message : "Failed to approve requests");
     }
   };
 
@@ -91,14 +165,14 @@ export default function AdminPage() {
   };
 
   const handleReject = async () => {
-    if (!user || !selectedRequestId || !rejectReason.trim()) return;
+    if (!user || !selectedRequestId) return;
     try {
       await api.rejectRequest(selectedRequestId, user.username, rejectReason);
-      showToast("Request rejected", "success");
+      toast.success("Request rejected");
       setShowRejectModal(false);
       loadPendingRequests();
     } catch (error) {
-      showToast(error instanceof Error ? error.message : "Failed to reject request", "error");
+      toast.error(error instanceof Error ? error.message : "Failed to reject request");
     }
   };
 
@@ -116,183 +190,298 @@ export default function AdminPage() {
     }
   };
 
-  const filteredRequests = requests.filter(
-    (r) =>
+  const filteredRequests = requests.filter((r) => {
+    const matchesSearch =
       r.username?.toLowerCase().includes(searchTerm.toLowerCase()) ||
       r.role_name?.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      r.app_name?.toLowerCase().includes(searchTerm.toLowerCase())
-  );
+      r.app_name?.toLowerCase().includes(searchTerm.toLowerCase());
+    const matchesPriority = filterPriority === "all" || r.priority === filterPriority;
+    return matchesSearch && matchesPriority;
+  });
 
   if (isLoading) {
     return (
-      <div className="flex items-center justify-center min-h-[400px]">
-        <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600"></div>
+      <div className="space-y-6">
+        <div className="flex flex-col gap-2">
+          <Skeleton className="h-8 w-48" />
+          <Skeleton className="h-4 w-72" />
+        </div>
+        <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-4">
+          {Array.from({ length: 4 }).map((_, i) => (
+            <Card key={i}>
+              <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+                <Skeleton className="h-4 w-24" />
+                <Skeleton className="size-4" />
+              </CardHeader>
+              <CardContent>
+                <Skeleton className="h-8 w-16" />
+                <Skeleton className="mt-1 h-3 w-28" />
+              </CardContent>
+            </Card>
+          ))}
+        </div>
       </div>
     );
   }
 
   return (
-    <div className="space-y-8">
-      <div className="flex items-center justify-between">
-        <div>
-          <h2 className="text-2xl font-bold text-gray-900 dark:text-white">Admin Panel</h2>
-          <p className="text-gray-600 dark:text-gray-400 mt-1">Review and manage access requests</p>
-        </div>
+    <div className="space-y-6">
+      <div className="flex flex-col gap-1">
+        <h1 className="text-2xl font-bold tracking-tight">Admin Panel</h1>
+        <p className="text-muted-foreground">Review and manage access requests across all applications.</p>
       </div>
 
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-        <div className="bg-white dark:bg-gray-800 rounded-xl shadow-sm border border-gray-200 dark:border-gray-700 p-6">
-          <div className="flex items-center gap-3">
-            <div className="w-10 h-10 bg-yellow-100 dark:bg-yellow-900 rounded-lg flex items-center justify-center">
-              <svg className="w-5 h-5 text-yellow-600 dark:text-yellow-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
-              </svg>
-            </div>
-            <div>
-              <p className="text-2xl font-bold text-gray-900 dark:text-white">{requests.length}</p>
-              <p className="text-sm text-gray-500 dark:text-gray-400">Pending Requests</p>
-            </div>
-          </div>
-        </div>
-      </div>
+      <Tabs defaultValue="overview" className="space-y-6">
+        <TabsList>
+          <TabsTrigger value="overview">Overview</TabsTrigger>
+          <TabsTrigger value="pending">Pending Requests</TabsTrigger>
+        </TabsList>
 
-      {selectedRequests.length > 0 && (
-        <div className="bg-blue-50 dark:bg-blue-900/30 border border-blue-200 dark:border-blue-800 rounded-lg p-4 flex items-center justify-between">
-          <span className="text-sm text-blue-700 dark:text-blue-300">{selectedRequests.length} request(s) selected</span>
-          <button
-            onClick={handleBulkApprove}
-            className="px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 text-sm"
-          >
-            Approve Selected
-          </button>
-        </div>
-      )}
-
-      <div className="bg-white dark:bg-gray-800 rounded-xl shadow-sm border border-gray-200 dark:border-gray-700">
-        <div className="px-6 py-4 border-b border-gray-200 dark:border-gray-700">
-          <div className="flex items-center justify-between">
-            <h3 className="text-lg font-semibold text-gray-900 dark:text-white">Pending Requests</h3>
-            <input
-              type="text"
-              placeholder="Search requests..."
-              value={searchTerm}
-              onChange={(e) => setSearchTerm(e.target.value)}
-              className="w-full max-w-sm px-4 py-2 border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 text-gray-900 dark:text-white rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+        <TabsContent value="overview" className="space-y-6">
+          <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-4">
+            <StatCard
+              title="Pending"
+              value={requests.length}
+              icon={Clock}
+              description="Awaiting your review"
+            />
+            <StatCard
+              title="High Priority"
+              value={requests.filter((r) => r.priority === "high").length}
+              icon={AlertCircle}
+              description="Urgent requests"
+            />
+            <StatCard
+              title="Avg Response"
+              value={0}
+              icon={Timer}
+              description="Days to respond"
+            />
+            <StatCard
+              title="Approval Rate"
+              value={requests.length > 0 ? Math.round((requests.filter((r) => r.status === "approved").length / requests.length) * 100) : 0}
+              icon={TrendingUp}
+              description="Of reviewed requests"
             />
           </div>
-        </div>
-        <div className="overflow-x-auto">
-          <table className="w-full">
-            <thead className="bg-gray-50 dark:bg-gray-700">
-              <tr>
-                <th className="px-6 py-3 text-left">
-                  <input
-                    type="checkbox"
-                    checked={selectedRequests.length === filteredRequests.length && filteredRequests.length > 0}
-                    onChange={toggleSelectAll}
-                    className="rounded border-gray-300"
-                  />
-                </th>
-                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase">User</th>
-                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase">Application</th>
-                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase">Role</th>
-                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase">Priority</th>
-                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase">Justification</th>
-                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase">Request Date</th>
-                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase">Actions</th>
-              </tr>
-            </thead>
-            <tbody className="divide-y divide-gray-200 dark:divide-gray-700">
-              {filteredRequests.length === 0 ? (
-                <tr>
-                  <td colSpan={8} className="px-6 py-8 text-center text-gray-500 dark:text-gray-400">
-                    No pending requests
-                  </td>
-                </tr>
-              ) : (
-                filteredRequests.map((request) => (
-                  <tr key={request.id} className="hover:bg-gray-50 dark:hover:bg-gray-700">
-                    <td className="px-6 py-4">
-                      <input
-                        type="checkbox"
-                        checked={selectedRequests.includes(request.id)}
-                        onChange={() => toggleSelect(request.id)}
-                        className="rounded border-gray-300"
-                      />
-                    </td>
-                    <td className="px-6 py-4">
-                      <div>
-                        <p className="text-sm font-medium text-gray-900 dark:text-white">{request.username}</p>
-                        <p className="text-xs text-gray-500 dark:text-gray-400">{request.user_email}</p>
-                      </div>
-                    </td>
-                    <td className="px-6 py-4 text-sm text-gray-900 dark:text-white">{request.app_name}</td>
-                    <td className="px-6 py-4 text-sm text-gray-600 dark:text-gray-300">{request.role_name}</td>
-                    <td className="px-6 py-4"><PriorityBadge priority={request.priority} /></td>
-                    <td className="px-6 py-4 text-sm text-gray-600 dark:text-gray-300 max-w-xs truncate">{request.justification}</td>
-                    <td className="px-6 py-4 text-sm text-gray-500 dark:text-gray-400">
-                      {new Date(request.request_date).toLocaleDateString()}
-                    </td>
-                    <td className="px-6 py-4">
-                      <div className="flex gap-2">
-                        <button
-                          onClick={() => handleApprove(request.id)}
-                          className="px-3 py-1.5 text-xs bg-green-100 dark:bg-green-900 text-green-700 dark:text-green-300 rounded-lg hover:bg-green-200 dark:hover:bg-green-800"
-                        >
-                          Approve
-                        </button>
-                        <button
-                          onClick={() => handleRejectClick(request.id)}
-                          className="px-3 py-1.5 text-xs bg-red-100 dark:bg-red-900 text-red-700 dark:text-red-300 rounded-lg hover:bg-red-200 dark:hover:bg-red-800"
-                        >
-                          Reject
-                        </button>
-                      </div>
-                    </td>
-                  </tr>
-                ))
-              )}
-            </tbody>
-          </table>
-        </div>
-      </div>
 
-      {showRejectModal && (
-        <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50">
-          <div className="bg-white dark:bg-gray-800 rounded-xl shadow-xl w-full max-w-md mx-4">
-            <div className="px-6 py-4 border-b border-gray-200 dark:border-gray-700">
-              <h3 className="text-lg font-semibold text-gray-900 dark:text-white">Reject Request</h3>
-            </div>
-            <div className="p-6 space-y-4">
-              <div>
-                <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">Reason for rejection</label>
-                <textarea
-                  value={rejectReason}
-                  onChange={(e) => setRejectReason(e.target.value)}
-                  placeholder="Please provide a reason..."
-                  rows={4}
-                  className="w-full px-4 py-2 border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 text-gray-900 dark:text-white rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
-                />
+          <Card>
+            <CardHeader>
+              <CardTitle>Recent Activity</CardTitle>
+              <CardDescription>Latest access requests pending your review.</CardDescription>
+            </CardHeader>
+            <CardContent>
+              {requests.length === 0 ? (
+                <Empty>
+                  <EmptyTitle>No pending requests</EmptyTitle>
+                  <EmptyDescription>All caught up! There are no access requests waiting for review.</EmptyDescription>
+                </Empty>
+              ) : (
+                <div className="space-y-4">
+                  {requests.slice(0, 5).map((request) => (
+                    <div key={request.id} className="flex items-center justify-between rounded-lg border p-4">
+                      <div className="flex items-center gap-4">
+                        <div className="flex size-10 items-center justify-center rounded-full bg-primary/10">
+                          <span className="text-sm font-medium text-primary">
+                            {request.username?.[0]?.toUpperCase()}
+                          </span>
+                        </div>
+                        <div>
+                          <p className="font-medium">{request.username}</p>
+                          <p className="text-sm text-muted-foreground">
+                            {request.app_name} — {request.role_name}
+                          </p>
+                        </div>
+                      </div>
+                      <div className="flex items-center gap-3">
+                        <PriorityBadge priority={request.priority} />
+                        <span className="text-sm text-muted-foreground">
+                          {new Date(request.request_date).toLocaleDateString()}
+                        </span>
+                        <div className="flex gap-2">
+                          <Button size="sm" variant="outline" onClick={() => handleApprove(request.id)}>
+                            <CheckCircle2 className="size-3" data-icon="inline-start" />
+                            Approve
+                          </Button>
+                          <Button size="sm" variant="outline" onClick={() => handleRejectClick(request.id)}>
+                            <XCircle className="size-3" data-icon="inline-start" />
+                            Reject
+                          </Button>
+                        </div>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              )}
+            </CardContent>
+          </Card>
+        </TabsContent>
+
+        <TabsContent value="pending" className="space-y-4">
+          {selectedRequests.length > 0 && (
+            <Alert>
+              <AlertCircle className="size-4" />
+              <AlertTitle>{selectedRequests.length} request(s) selected</AlertTitle>
+              <AlertDescription className="flex items-center gap-2 pt-2">
+                <Button size="sm" onClick={handleBulkApprove}>
+                  <CheckCircle2 className="size-3" data-icon="inline-start" />
+                  Approve Selected
+                </Button>
+                <Button size="sm" variant="outline" onClick={() => setSelectedRequests([])}>
+                  Clear Selection
+                </Button>
+              </AlertDescription>
+            </Alert>
+          )}
+
+          <Card>
+            <CardHeader>
+              <CardTitle>Pending Requests</CardTitle>
+              <CardDescription>Review and approve or reject access requests.</CardDescription>
+              <div className="flex flex-col gap-3 pt-2 sm:flex-row sm:items-center sm:justify-between">
+                <div className="flex items-center gap-2">
+                  <Search className="size-4 text-muted-foreground" />
+                  <Input
+                    placeholder="Search by user, app, or role..."
+                    value={searchTerm}
+                    onChange={(e) => setSearchTerm(e.target.value)}
+                    className="max-w-sm"
+                  />
+                </div>
+                <Select value={filterPriority} onValueChange={setFilterPriority}>
+                  <SelectTrigger className="w-40">
+                    <SelectValue placeholder="Filter by priority" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="all">All Priorities</SelectItem>
+                    <SelectItem value="high">High</SelectItem>
+                    <SelectItem value="medium">Medium</SelectItem>
+                    <SelectItem value="low">Low</SelectItem>
+                  </SelectContent>
+                </Select>
               </div>
-              <div className="flex gap-3 pt-2">
-                <button
-                  onClick={() => setShowRejectModal(false)}
-                  className="flex-1 px-4 py-2 border border-gray-300 dark:border-gray-600 text-gray-700 dark:text-gray-300 rounded-lg hover:bg-gray-50 dark:hover:bg-gray-700"
-                >
-                  Cancel
-                </button>
-                <button
-                  onClick={handleReject}
-                  disabled={!rejectReason.trim()}
-                  className="flex-1 px-4 py-2 bg-red-600 text-white rounded-lg hover:bg-red-700 disabled:opacity-50 disabled:cursor-not-allowed"
-                >
-                  Reject Request
-                </button>
-              </div>
+            </CardHeader>
+            <CardContent>
+              {filteredRequests.length === 0 ? (
+                <Empty>
+                  <EmptyTitle>No pending requests</EmptyTitle>
+                  <EmptyDescription>
+                    {searchTerm || filterPriority !== "all"
+                      ? "No requests match your filters. Try adjusting your search."
+                      : "All caught up! There are no access requests waiting for review."}
+                  </EmptyDescription>
+                </Empty>
+              ) : (
+                <div className="rounded-md border">
+                  <Table>
+                    <TableHeader>
+                      <TableRow>
+                        <TableHead className="w-12">
+                          <Checkbox
+                            checked={selectedRequests.length === filteredRequests.length && filteredRequests.length > 0}
+                            onCheckedChange={toggleSelectAll}
+                            aria-label="Select all requests"
+                          />
+                        </TableHead>
+                        <TableHead>User</TableHead>
+                        <TableHead>Application</TableHead>
+                        <TableHead>Role</TableHead>
+                        <TableHead>Priority</TableHead>
+                        <TableHead>Justification</TableHead>
+                        <TableHead>Request Date</TableHead>
+                        <TableHead className="w-48">Actions</TableHead>
+                      </TableRow>
+                    </TableHeader>
+                    <TableBody>
+                      {filteredRequests.map((request) => (
+                        <TableRow key={request.id}>
+                          <TableCell>
+                            <Checkbox
+                              checked={selectedRequests.includes(request.id)}
+                              onCheckedChange={() => toggleSelect(request.id)}
+                              aria-label={`Select request from ${request.username}`}
+                            />
+                          </TableCell>
+                          <TableCell>
+                            <div>
+                              <p className="font-medium">{request.username}</p>
+                              <p className="text-sm text-muted-foreground">{request.user_email}</p>
+                            </div>
+                          </TableCell>
+                          <TableCell>{request.app_name}</TableCell>
+                          <TableCell className="text-muted-foreground">{request.role_name}</TableCell>
+                          <TableCell><PriorityBadge priority={request.priority} /></TableCell>
+                          <TableCell className="max-w-xs truncate text-muted-foreground">
+                            {request.justification}
+                          </TableCell>
+                          <TableCell className="text-muted-foreground">
+                            {new Date(request.request_date).toLocaleDateString()}
+                          </TableCell>
+                          <TableCell>
+                            <div className="flex gap-2">
+                              <Button
+                                size="sm"
+                                variant="outline"
+                                onClick={() => handleApprove(request.id)}
+                              >
+                                <CheckCircle2 className="size-3" data-icon="inline-start" />
+                                Approve
+                              </Button>
+                              <Button
+                                size="sm"
+                                variant="outline"
+                                onClick={() => handleRejectClick(request.id)}
+                              >
+                                <XCircle className="size-3" data-icon="inline-start" />
+                                Reject
+                              </Button>
+                            </div>
+                          </TableCell>
+                        </TableRow>
+                      ))}
+                    </TableBody>
+                  </Table>
+                </div>
+              )}
+            </CardContent>
+          </Card>
+        </TabsContent>
+      </Tabs>
+
+      <Dialog open={showRejectModal} onOpenChange={setShowRejectModal}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Reject Request</DialogTitle>
+            <DialogDescription>
+              Optionally provide a reason for rejecting this access request. The user will be notified.
+            </DialogDescription>
+          </DialogHeader>
+          <div className="flex flex-col gap-4 py-4">
+            <div className="flex flex-col gap-2">
+              <Label htmlFor="reject-reason">Reason for rejection</Label>
+              <Textarea
+                id="reject-reason"
+                placeholder="Please provide a reason..."
+                value={rejectReason}
+                onChange={(e) => setRejectReason(e.target.value)}
+                rows={4}
+              />
             </div>
           </div>
-        </div>
-      )}
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setShowRejectModal(false)}>
+              Cancel
+            </Button>
+              <Button
+                variant="destructive"
+                onClick={handleReject}
+              >
+              <Trash2 className="size-4" data-icon="inline-start" />
+              Reject Request
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }
