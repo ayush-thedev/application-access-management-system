@@ -1,114 +1,143 @@
-# Identity Governance System
+# Application Access Management System
 
-Application Access Management System built with MySQL, FastAPI, and Next.js.
+A premium enterprise solution for Identity and Access Management (IAM), built with MySQL, FastAPI, and Next.js. This system provides a streamlined workflow for requesting, approving, and auditing application access across an organization.
 
-## Features
+## 🌟 Key Features
 
-- **User Management**: Login with role-based access (user/admin)
-- **Application Catalog**: Browse available enterprise applications
-- **Access Requests**: Submit requests with justification and priority
-- **Approval Workflow**: Admins can approve/reject requests
-- **Role Assignment**: Automatic role assignment on approval
-- **Time-bound Access**: Access expires automatically
-- **Search & Filter**: Find requests by application, role, or status
-- **Bulk Actions**: Approve multiple requests at once
-- **Toast Notifications**: Real-time feedback on actions
+- **Role-Based Access Control (RBAC)**: Comprehensive system for managing users, applications, and permissions.
+- **Smart Access Requests**: Request access with priority levels, justifications, and automatic status tracking.
+- **Advanced Admin Dashboard**: Powerful interface for administrators to manage requests, users, and system settings.
+- **Notification System**: Integrated alert system for real-time status updates on requests and approvals.
+- **Audit Logging**: (PL/SQL Powered) Automated tracking of access changes and status transitions.
+- **Responsive Modern UI**: Built with Shadcn/UI for a premium, accessible experience.
 
-## Tech Stack
+## 💻 Tech Stack
 
-- **Database**: MySQL
-- **Backend**: Python + FastAPI
-- **Frontend**: Next.js + TypeScript + Tailwind CSS
+- **Frontend**: Next.js 16 (App Router), TypeScript, Tailwind CSS, Shadcn/UI, Lucide Icons.
+- **Backend**: Python 3.11+, FastAPI, Pydantic v2.
+- **Database**: MySQL 8.0+ (utilizing Triggers and Stored Procedures).
+- **Styling**: Vanilla CSS + Tailwind CSS 4.0.
 
-## Prerequisites
+## 🛠 Prerequisites
 
-- Node.js 18+
-- Python 3.9+
-- MySQL 8.0+
+- **Node.js**: 20+ (using `npm` or `pnpm`)
+- **Python**: 3.11+
+- **MySQL**: 8.0+
 
-## Setup
+## 🚀 Getting Started
 
-### 1. Database Setup
-
-Create the database and import schema:
-
-```sql
-mysql -u root -p < backend/schema.sql
-mysql -u root -p < backend/seed_data.sql
+### 1. Repository Setup
+```bash
+git clone https://github.com/ayush-thedev/application-access-management-system.git
+cd application-access-management-system
 ```
 
-Or update `.env` with your MySQL credentials:
+### 2. Database Configuration
+1. Initialize the database using the provided scripts:
+   ```bash
+   # Create tables
+   mysql -u root -p < backend/schema.sql
+   # Seed with demo data
+   mysql -u root -p < backend/seed_data.sql
+   ```
 
-```env
-DB_HOST=localhost
-DB_PORT=3306
-DB_USER=root
-DB_PASSWORD=your_password
-DB_NAME=access_management
-```
+2. Configure environment variables. Create a `.env` file in the `backend/` directory:
+   ```env
+   DB_HOST=localhost
+   DB_PORT=3306
+   DB_USER=root
+   DB_PASSWORD=your_password
+   DB_NAME=access_management
+   ```
 
-### 2. Backend Setup
-
+### 3. Backend Setup (FastAPI)
 ```bash
 cd backend
+python -m venv venv
+source venv/bin/activate  # On Windows: venv\Scripts\activate
 pip install -r requirements.txt
 python main.py
 ```
+*API will be available at `http://localhost:8000`*
 
-The API will start on `http://localhost:8000`
-
-### 3. Frontend Setup
-
+### 4. Frontend Setup (Next.js)
 ```bash
 cd frontend
 npm install
 npm run dev
 ```
+*Frontend will be available at `http://localhost:3000`*
 
-The frontend will start on `http://localhost:3000`
+---
 
-## Demo Users
+## 🏗 Architecture & Structure
 
-| Username | Role | Department |
-|----------|------|------------|
-| alice | user | Engineering |
-| bob | user | Sales |
-| charlie | user | Marketing |
-| admin | admin | IT |
-
-## API Endpoints
-
-| Method | Endpoint | Description |
-|--------|----------|-------------|
-| POST | `/api/auth/login` | Mock login |
-| GET | `/api/applications` | List applications |
-| GET | `/api/applications/{id}/roles` | Get app roles |
-| GET | `/api/requests` | Get requests |
-| GET | `/api/requests/pending` | Get pending requests |
-| POST | `/api/requests` | Create request |
-| PATCH | `/api/requests/{id}/approve` | Approve request |
-| PATCH | `/api/requests/{id}/reject` | Reject request |
-| GET | `/api/user-roles/current-user/{username}` | Get user's access |
-
-## Project Structure
-
+### Project Structure
 ```
 ├── backend/
-│   ├── main.py           # FastAPI app
-│   ├── database.py       # MySQL connection
-│   ├── models.py         # Pydantic models
-│   ├── routes/           # API endpoints
-│   ├── schema.sql        # Table definitions
-│   └── seed_data.sql     # Demo data
+│   ├── main.py           # Entry point & app configuration
+│   ├── database.py       # Connection pooling & logic
+│   ├── models.py         # Pydantic schemas & response models
+│   ├── routes/           # Modular API routes (Auth, Apps, Requests, Notifications)
+│   ├── schema.sql        # Database DDL
+│   └── seed_data.sql     # Initial DML & Test cases
 ├── frontend/
 │   ├── src/
-│   │   ├── app/          # Next.js pages
-│   │   ├── components/   # UI components
-│   │   └── lib/          # API client, types
-│   └── package.json
-└── README.md
+│   │   ├── app/          # Next.js App Router (Pages & Layouts)
+│   │   ├── components/   # Reusable UI (Shadcn, Custom Layouts)
+│   │   ├── lib/          # API Client & State utilities
+│   │   └── types/        # TypeScript definitions
+│   └── public/           # Static assets
+└── Project_Details_and_PLSQL.md # Technical documentation for academic submission
 ```
 
-## License
+### Request Lifecycle
+1. **Initiation**: User submits an access request via the Dashboard.
+2. **Persistence**: Backend validates and stores the request in MySQL.
+3. **Notification**: Stored procedures/routes trigger notifications for relevant admins.
+4. **Approval**: Admin reviews and takes action (Approve/Reject).
+5. **Role Provisioning**: On approval, the system automatically assigns the role to the user.
+6. **Closing**: User receives a notification and access is granted.
 
-MIT
+---
+
+## 🔑 Demo Users
+
+| Role | Username | Password | Department |
+|------|----------|----------|------------|
+| **Admin** | `admin` | `password` | IT Operations |
+| **User** | `alice` | `password` | Engineering |
+| **User** | `bob` | `password` | Sales |
+
+---
+
+## 🔌 Core API Endpoints
+
+### Authentication
+- `POST /api/auth/login`: Authenticate and receive user profile.
+
+### Applications & Roles
+- `GET /api/applications`: Fetch all enterprise applications.
+- `GET /api/applications/{id}/roles`: Fetch roles for a specific app.
+
+### Access Requests
+- `GET /api/requests`: List all requests (Admin) or user requests.
+- `POST /api/requests`: Submit a new access request.
+- `PATCH /api/requests/{id}/approve`: Approve a pending request.
+- `PATCH /api/requests/{id}/reject`: Reject a request with feedback.
+
+### Notifications
+- `GET /api/notifications`: Retrieve latest alerts for the logged-in user.
+- `PATCH /api/notifications/{id}/read`: Mark notification as seen.
+
+---
+
+## 🧪 Testing
+We include basic sanity tests for database integrity:
+```bash
+python check_db.py  # Check MySQL connectivity
+python test_insert.py # Test API-Database integration flow
+```
+
+## 📜 License
+This project is licensed under the MIT License.
