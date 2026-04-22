@@ -1,47 +1,62 @@
 # Application Access Management System
 
-A premium enterprise solution for Identity and Access Management (IAM), built with MySQL, FastAPI, and Next.js. This system provides a streamlined workflow for requesting, approving, and auditing application access across an organization.
+[![GitHub last commit](https://img.shields.io/github/last-commit/ayush-thedev/application-access-management-system?style=for-the-badge)](https://github.com/ayush-thedev/application-access-management-system/commits/main)
+[![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg?style=for-the-badge)](https://opensource.org/licenses/MIT)
 
-## 🌟 Key Features
+A premium enterprise solution for Identity and Access Management (IAM). This system provides a streamlined workflow for requesting, approving, and auditing application access across an organization.
+
+## Tech Stack
+
+### Backend
+![Python](https://img.shields.io/badge/Python-3776AB?style=for-the-badge&logo=python&logoColor=white)
+![FastAPI](https://img.shields.io/badge/FastAPI-005571?style=for-the-badge&logo=fastapi&logoColor=white)
+![MySQL](https://img.shields.io/badge/MySQL-4479A1?style=for-the-badge&logo=mysql&logoColor=white)
+![Pydantic](https://img.shields.io/badge/Pydantic-E92063?style=for-the-badge&logo=pydantic&logoColor=white)
+
+### Frontend
+![Next.js](https://img.shields.io/badge/Next.js-black?style=for-the-badge&logo=next.js&logoColor=white)
+![React](https://img.shields.io/badge/React-20232A?style=for-the-badge&logo=react&logoColor=61DAFB)
+![TypeScript](https://img.shields.io/badge/TypeScript-007ACC?style=for-the-badge&logo=typescript&logoColor=white)
+![Tailwind CSS](https://img.shields.io/badge/Tailwind_CSS-38B2AC?style=for-the-badge&logo=tailwind-css&logoColor=white)
+![Radix UI](https://img.shields.io/badge/Radix_UI-161618?style=for-the-badge&logo=radix-ui&logoColor=white)
+
+## Features
 
 - **Role-Based Access Control (RBAC)**: Comprehensive system for managing users, applications, and permissions.
 - **Smart Access Requests**: Request access with priority levels, justifications, and automatic status tracking.
 - **Advanced Admin Dashboard**: Powerful interface for administrators to manage requests, users, and system settings.
 - **Notification System**: Integrated alert system for real-time status updates on requests and approvals.
-- **Audit Logging**: (PL/SQL Powered) Automated tracking of access changes and status transitions.
-- **Responsive Modern UI**: Built with Shadcn/UI for a premium, accessible experience.
+- **Audit Logging**: Automated tracking of access changes and status transitions using PL/SQL Triggers.
+- **Responsive Modern UI**: Premium, accessible experience built with Shadcn/UI and Radix primitives.
 
-## 💻 Tech Stack
+## Quick Start
 
-- **Frontend**: Next.js 16 (App Router), TypeScript, Tailwind CSS, Shadcn/UI, Lucide Icons.
-- **Backend**: Python 3.11+, FastAPI, Pydantic v2.
-- **Database**: MySQL 8.0+ (utilizing Triggers and Stored Procedures).
-- **Styling**: Vanilla CSS + Tailwind CSS 4.0.
+### 1. Prerequisites
 
-## 🛠 Prerequisites
+- Node.js 20 or higher
+- Python 3.11 or higher
+- MySQL 8.0 or higher
 
-- **Node.js**: 20+ (using `npm` or `pnpm`)
-- **Python**: 3.11+
-- **MySQL**: 8.0+
+### 2. Repository Setup
 
-## 🚀 Getting Started
-
-### 1. Repository Setup
 ```bash
 git clone https://github.com/ayush-thedev/application-access-management-system.git
 cd application-access-management-system
 ```
 
-### 2. Database Configuration
-1. Initialize the database using the provided scripts:
+### 3. Database Initialization
+
+1. Create the database and tables:
    ```bash
-   # Create tables
    mysql -u root -p < backend/schema.sql
-   # Seed with demo data
+   ```
+
+2. Seed the database with demo data:
+   ```bash
    mysql -u root -p < backend/seed_data.sql
    ```
 
-2. Configure environment variables. Create a `.env` file in the `backend/` directory:
+3. Create a `.env` file in the `backend/` directory:
    ```env
    DB_HOST=localhost
    DB_PORT=3306
@@ -50,94 +65,63 @@ cd application-access-management-system
    DB_NAME=access_management
    ```
 
-### 3. Backend Setup (FastAPI)
+### 4. Running the Application
+
+#### Backend (FastAPI)
 ```bash
 cd backend
 python -m venv venv
-source venv/bin/activate  # On Windows: venv\Scripts\activate
+# Windows
+venv\Scripts\activate
+# Unix/macOS
+source venv/bin/activate
+
 pip install -r requirements.txt
 python main.py
 ```
-*API will be available at `http://localhost:8000`*
+Backend runs at: `http://localhost:8000`
 
-### 4. Frontend Setup (Next.js)
+#### Frontend (Next.js)
 ```bash
 cd frontend
 npm install
 npm run dev
 ```
-*Frontend will be available at `http://localhost:3000`*
+Frontend runs at: `http://localhost:3000`
 
----
+## Project Structure
 
-## 🏗 Architecture & Structure
+| Directory | Description |
+|-----------|-------------|
+| `backend/` | FastAPI server, database logic, and SQL scripts |
+| `frontend/` | Next.js application with Shadcn/UI components |
+| `backend/routes/` | Modular API endpoints for Auth, Apps, and Requests |
+| `backend/models.py` | Data validation and response schemas |
 
-### Project Structure
-```
-├── backend/
-│   ├── main.py           # Entry point & app configuration
-│   ├── database.py       # Connection pooling & logic
-│   ├── models.py         # Pydantic schemas & response models
-│   ├── routes/           # Modular API routes (Auth, Apps, Requests, Notifications)
-│   ├── schema.sql        # Database DDL
-│   └── seed_data.sql     # Initial DML & Test cases
-├── frontend/
-│   ├── src/
-│   │   ├── app/          # Next.js App Router (Pages & Layouts)
-│   │   ├── components/   # Reusable UI (Shadcn, Custom Layouts)
-│   │   ├── lib/          # API Client & State utilities
-│   │   └── types/        # TypeScript definitions
-│   └── public/           # Static assets
-└── Project_Details_and_PLSQL.md # Technical documentation for academic submission
-```
+## Demo Credentials
 
-### Request Lifecycle
-1. **Initiation**: User submits an access request via the Dashboard.
-2. **Persistence**: Backend validates and stores the request in MySQL.
-3. **Notification**: Stored procedures/routes trigger notifications for relevant admins.
-4. **Approval**: Admin reviews and takes action (Approve/Reject).
-5. **Role Provisioning**: On approval, the system automatically assigns the role to the user.
-6. **Closing**: User receives a notification and access is granted.
+| Role | Username | Password |
+|------|----------|----------|
+| Admin | admin | password |
+| User | alice | password |
+| User | bob | password |
 
----
+## API Overview
 
-## 🔑 Demo Users
+| Method | Endpoint | Description |
+|--------|----------|-------------|
+| POST | `/api/auth/login` | User authentication |
+| GET | `/api/applications` | List all applications |
+| POST | `/api/requests` | Submit new access request |
+| PATCH| `/api/requests/{id}/approve` | Approve a request (Admin) |
 
-| Role | Username | Password | Department |
-|------|----------|----------|------------|
-| **Admin** | `admin` | `password` | IT Operations |
-| **User** | `alice` | `password` | Engineering |
-| **User** | `bob` | `password` | Sales |
+## Automation (PL/SQL)
 
----
+The system utilizes advanced database features for integrity and automation:
+- **Procedures**: `DeactivateDeptAccess`, `IdentifyStaleRequests` (Escalation)
+- **Functions**: `fn_GetActiveRoleCount`, `fn_CheckDuplicateRequest`
+- **Triggers**: `trg_AutoSetupAppRoles`, `trg_LogAccessDecision` (Audit)
 
-## 🔌 Core API Endpoints
+## License
 
-### Authentication
-- `POST /api/auth/login`: Authenticate and receive user profile.
-
-### Applications & Roles
-- `GET /api/applications`: Fetch all enterprise applications.
-- `GET /api/applications/{id}/roles`: Fetch roles for a specific app.
-
-### Access Requests
-- `GET /api/requests`: List all requests (Admin) or user requests.
-- `POST /api/requests`: Submit a new access request.
-- `PATCH /api/requests/{id}/approve`: Approve a pending request.
-- `PATCH /api/requests/{id}/reject`: Reject a request with feedback.
-
-### Notifications
-- `GET /api/notifications`: Retrieve latest alerts for the logged-in user.
-- `PATCH /api/notifications/{id}/read`: Mark notification as seen.
-
----
-
-## 🧪 Testing
-We include basic sanity tests for database integrity:
-```bash
-python check_db.py  # Check MySQL connectivity
-python test_insert.py # Test API-Database integration flow
-```
-
-## 📜 License
 This project is licensed under the MIT License.
