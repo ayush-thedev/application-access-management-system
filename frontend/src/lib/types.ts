@@ -61,3 +61,12 @@ export interface LoginResponse {
   user: User;
   message: string;
 }
+
+export interface AuditLog {
+  id: number;
+  table_name: string;
+  action_type: string;
+  record_id: number;
+  action_details: string;
+  created_at: string;
+}

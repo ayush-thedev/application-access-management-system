@@ -1,7 +1,7 @@
 from fastapi import FastAPI, Request
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import JSONResponse
-from routes import auth, applications, requests, user_roles, users, notifications, settings, roles
+from routes import auth, applications, requests, user_roles, users, notifications, settings, roles, audit
 from database import connection_pool
 import os
 
@@ -37,6 +37,7 @@ app.include_router(users.router, prefix="/api")
 app.include_router(notifications.router, prefix="/api")
 app.include_router(settings.router, prefix="/api")
 app.include_router(roles.router, prefix="/api")
+app.include_router(audit.router, prefix="/api")
 
 
 @app.get("/")

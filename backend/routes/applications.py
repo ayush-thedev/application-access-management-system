@@ -154,7 +154,7 @@ def delete_application(app_id: int):
     conn = get_db_connection()
     cursor = conn.cursor(dictionary=True)
     
-    cursor.execute("SELECT id, status FROM applications WHERE id = %s", (app_id,))
+    cursor.execute("SELECT id, name FROM applications WHERE id = %s", (app_id,))
     existing = cursor.fetchone()
     
     if not existing:
@@ -162,15 +162,11 @@ def delete_application(app_id: int):
         conn.close()
         raise HTTPException(status_code=404, detail="Application not found")
     
-    if existing['status'] == 'inactive':
-        cursor.close()
-        conn.close()
-        raise HTTPException(status_code=400, detail="Application is already inactive")
-    
-    cursor.execute("UPDATE applications SET status = 'inactive' WHERE id = %s", (app_id,))
+    # Perform Hard Delete - cascades will handle roles, requests, and triggers will handle audit
+    cursor.execute("DELETE FROM applications WHERE id = %s", (app_id,))
     conn.commit()
     
     cursor.close()
     conn.close()
     
-    return {"message": "Application deactivated successfully"}
+    return {"message": f"Application '{existing['name']}' and all associated roles have been completely removed"}

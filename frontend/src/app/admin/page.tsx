@@ -4,10 +4,11 @@ import { useState, useEffect } from "react";
 import { useSearchParams, useRouter } from "next/navigation";
 import { useAuth } from "@/lib/AuthContext";
 import { api } from "@/lib/api";
-import { AccessRequest, Application } from "@/lib/types";
+import { AccessRequest, Application, UserRole, AuditLog } from "@/lib/types";
 import { toast } from "sonner";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
+import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import { Button } from "@/components/ui/button";
 import {
   Table,
@@ -48,11 +49,11 @@ import {
   AlertCircle,
   Plus,
   Pencil,
+  Building2,
   Trash2,
   Timer,
   TrendingUp,
   Mail,
-  Building2,
 } from "lucide-react";
 
 function StatusBadge({ status }: { status: string }) {
@@ -139,10 +140,18 @@ export default function AdminPage() {
   const [userFormData, setUserFormData] = useState({ username: "", email: "", department: "", password: "" });
   const [isCreatingUser, setIsCreatingUser] = useState(false);
 
+  const [userRoles, setUserRoles] = useState<UserRole[]>([]);
+  const [isLoadingRoles, setIsLoadingRoles] = useState(true);
+
+  const [auditLogs, setAuditLogs] = useState<AuditLog[]>([]);
+  const [isLoadingAudit, setIsLoadingAudit] = useState(true);
+
   useEffect(() => {
     loadPendingRequests();
     loadUsers();
     loadApplications();
+    loadUserRoles();
+    loadAuditLogs();
   }, []);
 
   const loadPendingRequests = async () => {
@@ -175,6 +184,28 @@ export default function AdminPage() {
       toast.error("Failed to load applications");
     } finally {
       setIsLoadingApps(false);
+    }
+  };
+
+  const loadUserRoles = async () => {
+    try {
+      const data = await api.getAllUserRoles();
+      setUserRoles(data);
+    } catch {
+      toast.error("Failed to load user roles");
+    } finally {
+      setIsLoadingRoles(false);
+    }
+  };
+
+  const loadAuditLogs = async () => {
+    try {
+      const data = await api.getSystemAuditLogs();
+      setAuditLogs(data);
+    } catch {
+      toast.error("Failed to load audit logs");
+    } finally {
+      setIsLoadingAudit(false);
     }
   };
 
@@ -255,6 +286,51 @@ export default function AdminPage() {
     (a) =>
       a.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
       (a.description || "").toLowerCase().includes(searchTerm.toLowerCase())
+  );
+
+  const filteredRoles = userRoles.filter(
+    (r) =>
+      r.user_name?.toLowerCase().includes(searchTerm.toLowerCase()) ||
+      r.app_name?.toLowerCase().includes(searchTerm.toLowerCase()) ||
+      r.role_name?.toLowerCase().includes(searchTerm.toLowerCase())
+  );
+
+  interface GroupedUser {
+    user_id: number;
+    user_name: string;
+    apps: {
+      [app_name: string]: {
+        role_name: string;
+        assigned_at: string;
+        expires_at: string | null;
+      }[];
+    };
+  }
+
+  const groupedRoles = filteredRoles.reduce((acc, role) => {
+    if (!role.user_name) return acc;
+    if (!acc[role.user_id]) {
+        acc[role.user_id] = { user_id: role.user_id, user_name: role.user_name, apps: {} };
+    }
+    const appName = role.app_name || "Unknown Application";
+    if (!acc[role.user_id].apps[appName]) {
+        acc[role.user_id].apps[appName] = [];
+    }
+    acc[role.user_id].apps[appName].push({
+        role_name: role.role_name || "Unknown Role",
+        assigned_at: role.assigned_at,
+        expires_at: role.expires_at,
+    });
+    return acc;
+  }, {} as Record<number, GroupedUser>);
+
+  const groupedRolesArray = Object.values(groupedRoles);
+
+  const filteredAudit = auditLogs.filter(
+    (a) =>
+      a.action_type.toLowerCase().includes(searchTerm.toLowerCase()) ||
+      a.table_name.toLowerCase().includes(searchTerm.toLowerCase()) ||
+      a.action_details.toLowerCase().includes(searchTerm.toLowerCase())
   );
 
   const handleCreateApp = async () => {
@@ -761,6 +837,157 @@ export default function AdminPage() {
                               </Button>
                             </div>
                           </TableCell>
+                        </TableRow>
+                      ))}
+                    </TableBody>
+                  </Table>
+                </div>
+              )}
+            </CardContent>
+          </Card>
+        </TabsContent>
+
+        <TabsContent value="roles" className="space-y-4 pt-6">
+          <div className="flex flex-col gap-2 mb-6">
+            <h2 className="text-xl font-semibold">User Role Assignments</h2>
+            <p className="text-muted-foreground text-sm">View all roles currently assigned to users across the platform.</p>
+            <div className="flex items-center gap-2 pt-2">
+              <Search className="size-4 text-muted-foreground" />
+              <Input
+                placeholder="Search by user, application, or role..."
+                value={searchTerm}
+                onChange={(e) => setSearchTerm(e.target.value)}
+                className="max-w-sm"
+              />
+            </div>
+          </div>
+          
+          {isLoadingRoles ? (
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+              {Array.from({ length: 6 }).map((_, i) => (
+                <Skeleton key={i} className="h-48 w-full rounded-xl" />
+              ))}
+            </div>
+          ) : groupedRolesArray.length === 0 ? (
+            <Card>
+              <CardContent className="pt-6">
+                <Empty>
+                  <EmptyTitle>No roles assigned</EmptyTitle>
+                  <EmptyDescription>
+                    {searchTerm ? "No assignments match your search." : "No users currently have active roles."}
+                  </EmptyDescription>
+                </Empty>
+              </CardContent>
+            </Card>
+          ) : (
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+              {groupedRolesArray.map((user) => (
+                <Card key={user.user_id} className="transition-all duration-300 hover:shadow-lg hover:-translate-y-1 overflow-hidden">
+                  <CardHeader className="flex flex-row items-center gap-4 pb-4 border-b bg-muted/40">
+                    <Avatar className="h-12 w-12 border-2 border-primary/20 shadow-sm">
+                      <AvatarFallback className="bg-primary/10 text-primary uppercase text-lg font-bold">
+                        {user.user_name.substring(0, 2)}
+                      </AvatarFallback>
+                    </Avatar>
+                    <div className="flex flex-col">
+                      <CardTitle className="text-lg">{user.user_name}</CardTitle>
+                      <CardDescription className="text-xs">Active Roles</CardDescription>
+                    </div>
+                  </CardHeader>
+                  <CardContent className="pt-4 space-y-5">
+                    {Object.entries(user.apps).map(([appName, roles]) => (
+                      <div key={appName} className="space-y-2.5">
+                        <h4 className="text-sm font-semibold flex items-center text-foreground/80">
+                          <Building2 className="mr-2 h-4 w-4 text-primary/60" />
+                          {appName}
+                        </h4>
+                        <div className="flex flex-wrap gap-2 pl-6">
+                          {roles.map((role, idx) => {
+                            // Determine a pastel class based on the role length or name for a consistent random feel
+                            const colors = [
+                              "bg-indigo-100 text-indigo-800 border-indigo-200 hover:bg-indigo-200", 
+                              "bg-emerald-100 text-emerald-800 border-emerald-200 hover:bg-emerald-200",
+                              "bg-amber-100 text-amber-800 border-amber-200 hover:bg-amber-200",
+                              "bg-sky-100 text-sky-800 border-sky-200 hover:bg-sky-200",
+                              "bg-rose-100 text-rose-800 border-rose-200 hover:bg-rose-200"
+                            ];
+                            const colorClass = colors[role.role_name.length % colors.length];
+
+                            return (
+                              <Badge 
+                                key={idx} 
+                                variant="outline" 
+                                className={`px-2.5 py-0.5 rounded-md ${colorClass} transition-colors`}
+                              >
+                                {role.role_name}
+                              </Badge>
+                            );
+                          })}
+                        </div>
+                      </div>
+                    ))}
+                  </CardContent>
+                </Card>
+              ))}
+            </div>
+          )}
+        </TabsContent>
+
+        <TabsContent value="audit" className="space-y-4 pt-6">
+          <Card>
+            <CardHeader>
+              <CardTitle>System Audit Log</CardTitle>
+              <CardDescription>A complete trail of access modifications and system changes.</CardDescription>
+              <div className="flex items-center gap-2 pt-2">
+                <Search className="size-4 text-muted-foreground" />
+                <Input
+                  placeholder="Search audit details..."
+                  value={searchTerm}
+                  onChange={(e) => setSearchTerm(e.target.value)}
+                  className="max-w-sm"
+                />
+              </div>
+            </CardHeader>
+            <CardContent>
+              {isLoadingAudit ? (
+                <div className="space-y-3">
+                  {Array.from({ length: 5 }).map((_, i) => (
+                    <Skeleton key={i} className="h-12 w-full" />
+                  ))}
+                </div>
+              ) : filteredAudit.length === 0 ? (
+                <Empty>
+                  <EmptyTitle>No audit logs</EmptyTitle>
+                  <EmptyDescription>
+                    {searchTerm ? "No logs match your search." : "System has not recorded any actions yet."}
+                  </EmptyDescription>
+                </Empty>
+              ) : (
+                <div className="rounded-md border">
+                  <Table>
+                    <TableHeader>
+                      <TableRow>
+                        <TableHead className="w-48">Timestamp</TableHead>
+                        <TableHead>Action Type</TableHead>
+                        <TableHead>Table</TableHead>
+                        <TableHead>Record ID</TableHead>
+                        <TableHead>Details</TableHead>
+                      </TableRow>
+                    </TableHeader>
+                    <TableBody>
+                      {filteredAudit.map((log) => (
+                        <TableRow key={log.id}>
+                          <TableCell className="text-muted-foreground whitespace-nowrap">
+                            {new Date(log.created_at).toLocaleString()}
+                          </TableCell>
+                          <TableCell>
+                            <Badge variant={log.action_type === 'UPDATE' ? 'secondary' : (log.action_type === 'DELETE' ? 'destructive' : 'default')}>
+                              {log.action_type}
+                            </Badge>
+                          </TableCell>
+                          <TableCell className="font-mono text-xs">{log.table_name}</TableCell>
+                          <TableCell className="font-mono text-xs">#{log.record_id}</TableCell>
+                          <TableCell className="max-w-md">{log.action_details}</TableCell>
                         </TableRow>
                       ))}
                     </TableBody>

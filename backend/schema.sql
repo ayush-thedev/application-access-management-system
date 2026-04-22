@@ -7,6 +7,7 @@ DROP TABLE IF EXISTS user_roles;
 DROP TABLE IF EXISTS roles;
 DROP TABLE IF EXISTS applications;
 DROP TABLE IF EXISTS users;
+DROP TABLE IF EXISTS audit_logs;
 
 -- Users table
 CREATE TABLE users (
@@ -87,3 +88,15 @@ CREATE INDEX idx_requests_role ON access_requests(role_id);
 CREATE INDEX idx_requests_request_date ON access_requests(request_date);
 
 CREATE INDEX idx_roles_app ON roles(app_id);
+
+-- Audit Logs table
+CREATE TABLE audit_logs (
+    id INT PRIMARY KEY AUTO_INCREMENT,
+    table_name VARCHAR(50) NOT NULL,
+    action_type VARCHAR(50) NOT NULL,
+    record_id INT NOT NULL,
+    action_details TEXT NOT NULL,
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+);
+
+CREATE INDEX idx_audit_record ON audit_logs(table_name, record_id);

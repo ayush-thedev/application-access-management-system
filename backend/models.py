@@ -164,3 +164,16 @@ class NotificationResponse(BaseModel):
 
     class Config:
         from_attributes = True
+
+
+# Audit Log schemas
+class AuditLogResponse(BaseModel):
+    id: int
+    table_name: str
+    action_type: str
+    record_id: int
+    action_details: str
+    created_at: datetime
+
+    class Config:
+        from_attributes = True

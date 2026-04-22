@@ -63,6 +63,9 @@ export const api = {
     }),
 
   // User Roles
+  getAllUserRoles: () =>
+    fetchApi<import("./types").UserRole[]>("/user-roles"),
+
   getMyAccess: (username: string) =>
     fetchApi<import("./types").UserRole[]>(`/user-roles/current-user/${username}`),
 
@@ -146,4 +149,7 @@ export const api = {
   // Audit Log
   getAuditLog: (username?: string, status?: string) =>
     fetchApi<import("./types").AccessRequest[]>(`/requests/history${username ? `?username=${username}` : ""}${status ? `${username ? "&" : "?"}status=${status}` : ""}`),
+
+  getSystemAuditLogs: () =>
+    fetchApi<import("./types").AuditLog[]>("/audit"),
 };
