@@ -24,9 +24,9 @@ A premium enterprise solution for Identity and Access Management (IAM). This sys
 
 - **Role-Based Access Control (RBAC)**: Comprehensive system for managing users, applications, and permissions.
 - **Smart Access Requests**: Request access with priority levels, justifications, and automatic status tracking.
-- **Advanced Admin Dashboard**: Powerful interface for administrators to manage requests, users, and system settings.
+- **Advanced Admin Dashboard**: Powerful interface for administrators to manage requests, users, and system settings including an aesthetic grid view for roles.
 - **Notification System**: Integrated alert system for real-time status updates on requests and approvals.
-- **Audit Logging**: Automated tracking of access changes and status transitions using PL/SQL Triggers.
+- **Comprehensive Audit Logging**: Automated tracking of all system mutations—user onboarding, app management, and access decisions—using database triggers.
 - **Responsive Modern UI**: Premium, accessible experience built with Shadcn/UI and Radix primitives.
 
 ## Quick Start
@@ -111,16 +111,18 @@ Frontend runs at: `http://localhost:3000`
 | Method | Endpoint | Description |
 |--------|----------|-------------|
 | POST | `/api/auth/login` | User authentication |
-| GET | `/api/applications` | List all applications |
+| GET | `/api/applications` | List active applications |
 | POST | `/api/requests` | Submit new access request |
 | PATCH| `/api/requests/{id}/approve` | Approve a request (Admin) |
+| GET | `/api/audit` | Fetch system audit logs (Admin) |
+| GET | `/api/user-roles` | Fetch all user-role assignments (Admin) |
 
 ## Automation (PL/SQL)
 
 The system utilizes advanced database features for integrity and automation:
 - **Procedures**: `DeactivateDeptAccess`, `IdentifyStaleRequests` (Escalation)
 - **Functions**: `fn_GetActiveRoleCount`, `fn_CheckDuplicateRequest`
-- **Triggers**: `trg_AutoSetupAppRoles`, `trg_LogAccessDecision` (Audit)
+- **Triggers**: `trg_AutoSetupAppRoles`, `trg_LogAccessDecision`, `trg_LogUserOnboarding`, `trg_LogAppCreation` (Audit)
 
 ## License
 
