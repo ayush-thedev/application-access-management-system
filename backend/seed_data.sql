@@ -1,11 +1,11 @@
 -- Seed Data for Identity Governance System
 
 -- Insert Users
-INSERT INTO users (username, email, department, role, status) VALUES
-('alice', 'alice@company.com', 'Engineering', 'user', 'active'),
-('bob', 'bob@company.com', 'Sales', 'user', 'active'),
-('charlie', 'charlie@company.com', 'Marketing', 'user', 'active'),
-('admin', 'admin@company.com', 'IT', 'admin', 'active');
+INSERT INTO users (username, email, password_hash, department, role, status) VALUES
+('alice', 'alice@company.com', 'password123', 'Engineering', 'user', 'active'),
+('bob', 'bob@company.com', 'password123', 'Sales', 'user', 'active'),
+('charlie', 'charlie@company.com', 'password123', 'Marketing', 'user', 'active'),
+('admin', 'admin@company.com', 'admin123', 'IT', 'admin', 'active');
 
 -- Insert Applications
 INSERT INTO applications (name, description, status) VALUES

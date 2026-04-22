@@ -3,6 +3,7 @@ from typing import List
 from database import get_db_connection
 from models import RequestResponse, RequestCreate, RequestWithDetails
 from datetime import datetime, timedelta
+from routes.notifications import create_notification, notify_all_admins
 
 router = APIRouter(prefix="/requests", tags=["requests"])
 
@@ -107,8 +108,26 @@ def create_request(request: RequestCreate, username: str):
     cursor.execute("SELECT * FROM access_requests WHERE id = %s", (request_id,))
     new_request = cursor.fetchone()
     
+    # Get app and role names for the notification
+    cursor.execute("""
+        SELECT a.name as app_name, r.name as role_name
+        FROM access_requests ar
+        JOIN roles r ON ar.role_id = r.id
+        JOIN applications a ON r.app_id = a.id
+        WHERE ar.id = %s
+    """, (request_id,))
+    details = cursor.fetchone()
+    
     cursor.close()
     conn.close()
+    
+    # Notify all admins about the new request
+    notify_all_admins(
+        "request_submitted",
+        f"New access request from {username}",
+        f"{username} has requested access to {details['app_name']} as {details['role_name']}.",
+        request_id
+    )
     
     return RequestResponse(**new_request)
 
@@ -157,8 +176,27 @@ def approve_request(request_id: int, admin_username: str, expires_at: str = None
     cursor.execute("SELECT * FROM access_requests WHERE id = %s", (request_id,))
     updated_request = cursor.fetchone()
     
+    # Get app and role names for the notification
+    cursor.execute("""
+        SELECT a.name as app_name, r.name as role_name
+        FROM access_requests ar
+        JOIN roles r ON ar.role_id = r.id
+        JOIN applications a ON r.app_id = a.id
+        WHERE ar.id = %s
+    """, (request_id,))
+    details = cursor.fetchone()
+    
     cursor.close()
     conn.close()
+    
+    # Notify the requesting user
+    create_notification(
+        request['user_id'],
+        "request_approved",
+        f"Your request for {details['app_name']} has been approved",
+        f"Your request for {details['app_name']} as {details['role_name']} has been approved by {admin_username}.",
+        request_id
+    )
     
     return RequestResponse(**updated_request)
 
@@ -200,7 +238,66 @@ def reject_request(request_id: int, admin_username: str, denial_reason: str = ""
     cursor.execute("SELECT * FROM access_requests WHERE id = %s", (request_id,))
     updated_request = cursor.fetchone()
     
+    # Get app and role names for the notification
+    cursor.execute("""
+        SELECT a.name as app_name, r.name as role_name
+        FROM access_requests ar
+        JOIN roles r ON ar.role_id = r.id
+        JOIN applications a ON r.app_id = a.id
+        WHERE ar.id = %s
+    """, (request_id,))
+    details = cursor.fetchone()
+    
     cursor.close()
     conn.close()
     
+    # Notify the requesting user
+    reason_text = f" Reason: {denial_reason}" if denial_reason else ""
+    create_notification(
+        request['user_id'],
+        "request_rejected",
+        f"Your request for {details['app_name']} has been rejected",
+        f"Your request for {details['app_name']} as {details['role_name']} has been rejected.{reason_text}",
+        request_id
+    )
+    
     return RequestResponse(**updated_request)
+
+
+@router.get("/history", response_model=List[RequestWithDetails])
+def get_request_history(username: str = None, status: str = None):
+    conn = get_db_connection()
+    cursor = conn.cursor(dictionary=True)
+    
+    query = """
+        SELECT ar.id, ar.user_id, ar.role_id, ar.justification, ar.priority,
+               ar.status, ar.request_type, ar.denial_reason, ar.request_date,
+               ar.approval_date, ar.approved_by, ar.expires_at, ar.created_at,
+               u.username, u.email as user_email, r.name as role_name,
+               a.name as app_name, ap.username as approved_by_name
+        FROM access_requests ar
+        JOIN users u ON ar.user_id = u.id
+        JOIN roles r ON ar.role_id = r.id
+        JOIN applications a ON r.app_id = a.id
+        LEFT JOIN users ap ON ar.approved_by = ap.id
+        WHERE ar.status IN ('approved', 'rejected')
+    """
+    params = []
+    
+    if username:
+        query += " AND u.username = %s"
+        params.append(username)
+    
+    if status:
+        query += " AND ar.status = %s"
+        params.append(status)
+    
+    query += " ORDER BY ar.approval_date DESC"
+    
+    cursor.execute(query, params)
+    requests = cursor.fetchall()
+    
+    cursor.close()
+    conn.close()
+    
+    return [RequestWithDetails(**req) for req in requests]

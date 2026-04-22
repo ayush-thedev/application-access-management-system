@@ -1,37 +1,30 @@
--- Identity Governance System - Database Schema
--- MySQL Version
+-- Project Title: Application Access Management System
+-- DDL Statements with Table and Row Level Constraints
 
--- Drop tables if exists (in reverse order)
-DROP TABLE IF EXISTS access_requests;
-DROP TABLE IF EXISTS user_roles;
-DROP TABLE IF EXISTS roles;
-DROP TABLE IF EXISTS applications;
-DROP TABLE IF EXISTS users;
-
--- Users table
+-- 1. Users Table (Row-level constraints: NOT NULL, UNIQUE, DEFAULT, ENUM)
 CREATE TABLE users (
     id INT PRIMARY KEY AUTO_INCREMENT,
     username VARCHAR(50) UNIQUE NOT NULL,
     email VARCHAR(100) UNIQUE NOT NULL,
     password_hash VARCHAR(255) NOT NULL,
     department VARCHAR(100),
-    role ENUM('user', 'admin') DEFAULT 'user',
-    status ENUM('active', 'inactive') DEFAULT 'active',
+    role ENUM('user', 'admin') DEFAULT 'user' NOT NULL,
+    status ENUM('active', 'inactive') DEFAULT 'active' NOT NULL,
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
     updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP
 );
 
--- Applications table
+-- 2. Applications Table
 CREATE TABLE applications (
     id INT PRIMARY KEY AUTO_INCREMENT,
-    name VARCHAR(100) NOT NULL,
+    name VARCHAR(100) NOT NULL UNIQUE,
     description TEXT,
-    status ENUM('active', 'inactive') DEFAULT 'active',
+    status ENUM('active', 'inactive') DEFAULT 'active' NOT NULL,
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
     updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP
 );
 
--- Roles table
+-- 3. Roles Table (Table-level constraint: FOREIGN KEY, UNIQUE KEY)
 CREATE TABLE roles (
     id INT PRIMARY KEY AUTO_INCREMENT,
     name VARCHAR(50) NOT NULL,
@@ -39,31 +32,33 @@ CREATE TABLE roles (
     description VARCHAR(255),
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
     updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+    -- Table-level constraints
     FOREIGN KEY (app_id) REFERENCES applications(id) ON DELETE CASCADE,
     UNIQUE KEY unique_role_per_app (name, app_id)
 );
 
--- User_Roles table (many-to-many)
+-- 4. User_Roles Table (Table-level constraint: FOREIGN KEY, UNIQUE KEY)
 CREATE TABLE user_roles (
     id INT PRIMARY KEY AUTO_INCREMENT,
     user_id INT NOT NULL,
     role_id INT NOT NULL,
     assigned_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
     expires_at TIMESTAMP NULL,
+    -- Table-level constraints
     FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE,
     FOREIGN KEY (role_id) REFERENCES roles(id) ON DELETE CASCADE,
     UNIQUE KEY unique_user_role (user_id, role_id)
 );
 
--- Access_Requests table
+-- 5. Access_Requests Table (Table-level constraint: FOREIGN KEY)
 CREATE TABLE access_requests (
     id INT PRIMARY KEY AUTO_INCREMENT,
     user_id INT NOT NULL,
     role_id INT NOT NULL,
     justification TEXT NOT NULL,
-    priority ENUM('low', 'medium', 'high') DEFAULT 'medium',
-    status ENUM('pending', 'approved', 'rejected') DEFAULT 'pending',
-    request_type ENUM('new', 'renewal') DEFAULT 'new',
+    priority ENUM('low', 'medium', 'high') DEFAULT 'medium' NOT NULL,
+    status ENUM('pending', 'approved', 'rejected') DEFAULT 'pending' NOT NULL,
+    request_type ENUM('new', 'renewal') DEFAULT 'new' NOT NULL,
     denial_reason TEXT,
     request_date TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
     approval_date TIMESTAMP NULL,
@@ -71,19 +66,24 @@ CREATE TABLE access_requests (
     expires_at TIMESTAMP NULL,
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
     updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+    -- Table-level constraints
     FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE,
     FOREIGN KEY (role_id) REFERENCES roles(id) ON DELETE CASCADE,
     FOREIGN KEY (approved_by) REFERENCES users(id) ON DELETE SET NULL
 );
 
+-- 6. Audit Logs Table (For triggers)
+CREATE TABLE audit_logs (
+    id INT PRIMARY KEY AUTO_INCREMENT,
+    table_name VARCHAR(50),
+    action_type ENUM('INSERT', 'UPDATE', 'DELETE'),
+    record_id INT,
+    action_details TEXT,
+    action_timestamp TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+);
+
 -- Indexes for performance
 CREATE INDEX idx_user_roles_user ON user_roles(user_id);
 CREATE INDEX idx_user_roles_role ON user_roles(role_id);
-CREATE INDEX idx_user_roles_expires ON user_roles(expires_at);
-
 CREATE INDEX idx_requests_user ON access_requests(user_id);
 CREATE INDEX idx_requests_status ON access_requests(status);
-CREATE INDEX idx_requests_role ON access_requests(role_id);
-CREATE INDEX idx_requests_request_date ON access_requests(request_date);
-
-CREATE INDEX idx_roles_app ON roles(app_id);

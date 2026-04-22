@@ -18,7 +18,7 @@ def login(user: UserLogin):
     cursor = conn.cursor(dictionary=True)
     
     cursor.execute(
-        "SELECT id, username, email, department, role, status, created_at FROM users WHERE username = %s",
+        "SELECT id, username, email, department, role, status, created_at, password_hash FROM users WHERE username = %s",
         (user.username,)
     )
     db_user = cursor.fetchone()
@@ -29,14 +29,14 @@ def login(user: UserLogin):
     if not db_user:
         raise HTTPException(status_code=401, detail="Invalid username or password")
     
+    if db_user['password_hash'] != user.password:
+        raise HTTPException(status_code=401, detail="Invalid username or password")
+    
+    del db_user['password_hash']
     user_data = UserResponse(**db_user)
     
     if user_data.status != "active":
         raise HTTPException(status_code=403, detail="User account is inactive")
-    
-    expected_password = "admin01" if user_data.role == "admin" else "user01"
-    if user.password != expected_password:
-        raise HTTPException(status_code=401, detail="Invalid username or password")
     
     role_text = "Administrator" if user_data.role == "admin" else "User"
     return LoginResponse(

@@ -1,7 +1,7 @@
 "use client";
 
 import Link from "next/link";
-import { usePathname } from "next/navigation";
+import { usePathname, useSearchParams } from "next/navigation";
 import {
   Sidebar,
   SidebarContent,
@@ -37,23 +37,26 @@ import {
   ChevronUp,
   User,
   Shield,
+  ScrollText,
+  KeyRound,
 } from "lucide-react";
 import { useAuth } from "@/lib/AuthContext";
 import { useRouter } from "next/navigation";
 
 const dashboardNavItems = [
-  { label: "Dashboard", href: "/dashboard", icon: LayoutDashboard },
-  { label: "My Requests", href: "/dashboard#requests", icon: FileText },
-  { label: "My Access", href: "/dashboard#access", icon: ShieldCheck },
-  { label: "Applications", href: "/dashboard#applications", icon: FolderOpen },
+  { label: "Dashboard", href: "/dashboard", icon: LayoutDashboard, tab: "dashboard" },
+  { label: "My Requests", href: "/dashboard?tab=my-requests", icon: FileText, tab: "my-requests" },
+  { label: "My Access", href: "/dashboard?tab=my-access", icon: ShieldCheck, tab: "my-access" },
+  { label: "Applications", href: "/dashboard?tab=applications", icon: FolderOpen, tab: "applications" },
 ];
 
 const adminNavItems = [
-  { label: "Overview", href: "/admin", icon: LayoutDashboard },
-  { label: "Pending Requests", href: "/admin?tab=pending", icon: ClipboardList },
-  { label: "Users", href: "/admin?tab=users", icon: Users },
-  { label: "Applications", href: "/admin?tab=apps", icon: Building2 },
-  { label: "Roles", href: "/admin?tab=roles", icon: Shield },
+  { label: "Overview", href: "/admin", icon: LayoutDashboard, tab: "overview" },
+  { label: "Pending Requests", href: "/admin?tab=pending", icon: ClipboardList, tab: "pending" },
+  { label: "Users", href: "/admin?tab=users", icon: Users, tab: "users" },
+  { label: "Applications", href: "/admin?tab=applications", icon: Building2, tab: "applications" },
+  { label: "Roles", href: "/admin?tab=roles", icon: KeyRound, tab: "roles" },
+  { label: "Audit Log", href: "/admin?tab=audit", icon: ScrollText, tab: "audit" },
 ];
 
 const settingsItem = { label: "Settings", href: "/settings", icon: Settings };
@@ -62,6 +65,8 @@ export function AppSidebar({ variant }: { variant: "dashboard" | "admin" }) {
   const { user, logout } = useAuth();
   const router = useRouter();
   const pathname = usePathname();
+  const searchParams = useSearchParams();
+  const currentTab = searchParams.get("tab");
   const navItems = variant === "admin" ? adminNavItems : dashboardNavItems;
 
   if (!user) return null;
@@ -98,16 +103,19 @@ export function AppSidebar({ variant }: { variant: "dashboard" | "admin" }) {
           <SidebarGroupLabel>Navigation</SidebarGroupLabel>
           <SidebarGroupContent>
             <SidebarMenu>
-              {navItems.map((item) => (
+              {navItems.map((item) => {
+                const isActive = pathname === item.href.split("?")[0] && (item.tab === "dashboard" || item.tab === "overview" ? !currentTab : currentTab === item.tab);
+                return (
                 <SidebarMenuItem key={item.label}>
-                  <SidebarMenuButton asChild isActive={pathname === item.href}>
+                  <SidebarMenuButton asChild isActive={isActive}>
                     <Link href={item.href}>
                       <item.icon />
                       <span>{item.label}</span>
                     </Link>
                   </SidebarMenuButton>
                 </SidebarMenuItem>
-              ))}
+                );
+              })}
             </SidebarMenu>
           </SidebarGroupContent>
         </SidebarGroup>

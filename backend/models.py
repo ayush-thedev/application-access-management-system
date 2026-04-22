@@ -29,6 +29,20 @@ class UserLogin(BaseModel):
     password: str
 
 
+class UserListResponse(BaseModel):
+    id: int
+    username: str
+    email: str
+    department: Optional[str] = None
+    role: str
+    status: str
+    created_at: datetime
+    access_count: int = 0
+
+    class Config:
+        from_attributes = True
+
+
 # Application schemas
 class ApplicationBase(BaseModel):
     name: str
@@ -42,6 +56,15 @@ class ApplicationResponse(ApplicationBase):
 
     class Config:
         from_attributes = True
+
+
+class ApplicationCreate(ApplicationBase):
+    pass
+
+
+class ApplicationUpdate(BaseModel):
+    name: Optional[str] = None
+    description: Optional[str] = None
 
 
 # Role schemas
@@ -126,3 +149,18 @@ class RequestWithDetails(RequestResponse):
 class LoginResponse(BaseModel):
     user: UserResponse
     message: str
+
+
+# Notification schemas
+class NotificationResponse(BaseModel):
+    id: int
+    user_id: int
+    type: str
+    title: str
+    message: str
+    is_read: bool
+    request_id: Optional[int] = None
+    created_at: datetime
+
+    class Config:
+        from_attributes = True

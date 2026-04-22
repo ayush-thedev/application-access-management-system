@@ -1,9 +1,10 @@
 "use client";
 
 import { useState, useEffect } from "react";
+import { useSearchParams, useRouter } from "next/navigation";
 import { useAuth } from "@/lib/AuthContext";
 import { api } from "@/lib/api";
-import { AccessRequest } from "@/lib/types";
+import { AccessRequest, Application } from "@/lib/types";
 import { toast } from "sonner";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
@@ -46,9 +47,12 @@ import {
   Search,
   AlertCircle,
   Plus,
+  Pencil,
   Trash2,
   Timer,
   TrendingUp,
+  Mail,
+  Building2,
 } from "lucide-react";
 
 function StatusBadge({ status }: { status: string }) {
@@ -109,6 +113,10 @@ function StatCard({
 
 export default function AdminPage() {
   const { user } = useAuth();
+  const searchParams = useSearchParams();
+  const router = useRouter();
+  const activeTab = searchParams.get("tab") || "overview";
+
   const [requests, setRequests] = useState<AccessRequest[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [selectedRequests, setSelectedRequests] = useState<number[]>([]);
@@ -118,8 +126,23 @@ export default function AdminPage() {
   const [searchTerm, setSearchTerm] = useState("");
   const [filterPriority, setFilterPriority] = useState("all");
 
+  const [users, setUsers] = useState<Array<{ id: number; username: string; email: string; department: string | null; role: string; status: string; created_at: string; access_count: number }>>([]);
+  const [isLoadingUsers, setIsLoadingUsers] = useState(true);
+
+  const [applications, setApplications] = useState<Application[]>([]);
+  const [isLoadingApps, setIsLoadingApps] = useState(true);
+  const [showAppDialog, setShowAppDialog] = useState(false);
+  const [editingApp, setEditingApp] = useState<Application | null>(null);
+  const [appFormData, setAppFormData] = useState({ name: "", description: "" });
+  
+  const [showUserDialog, setShowUserDialog] = useState(false);
+  const [userFormData, setUserFormData] = useState({ username: "", email: "", department: "", password: "" });
+  const [isCreatingUser, setIsCreatingUser] = useState(false);
+
   useEffect(() => {
     loadPendingRequests();
+    loadUsers();
+    loadApplications();
   }, []);
 
   const loadPendingRequests = async () => {
@@ -130,6 +153,28 @@ export default function AdminPage() {
       toast.error("Failed to load requests");
     } finally {
       setIsLoading(false);
+    }
+  };
+
+  const loadUsers = async () => {
+    try {
+      const data = await api.getAllUsers();
+      setUsers(data);
+    } catch {
+      toast.error("Failed to load users");
+    } finally {
+      setIsLoadingUsers(false);
+    }
+  };
+
+  const loadApplications = async () => {
+    try {
+      const data = await api.getAllApplications();
+      setApplications(data);
+    } catch {
+      toast.error("Failed to load applications");
+    } finally {
+      setIsLoadingApps(false);
     }
   };
 
@@ -199,6 +244,94 @@ export default function AdminPage() {
     return matchesSearch && matchesPriority;
   });
 
+  const filteredUsers = users.filter(
+    (u) =>
+      u.username.toLowerCase().includes(searchTerm.toLowerCase()) ||
+      u.email.toLowerCase().includes(searchTerm.toLowerCase()) ||
+      (u.department || "").toLowerCase().includes(searchTerm.toLowerCase())
+  );
+
+  const filteredApps = applications.filter(
+    (a) =>
+      a.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
+      (a.description || "").toLowerCase().includes(searchTerm.toLowerCase())
+  );
+
+  const handleCreateApp = async () => {
+    try {
+      await api.createApplication({ name: appFormData.name, description: appFormData.description || undefined });
+      toast.success("Application created!");
+      setShowAppDialog(false);
+      setAppFormData({ name: "", description: "" });
+      loadApplications();
+    } catch (error) {
+      toast.error(error instanceof Error ? error.message : "Failed to create application");
+    }
+  };
+
+  const handleUpdateApp = async () => {
+    if (!editingApp) return;
+    try {
+      await api.updateApplication(editingApp.id, { name: appFormData.name, description: appFormData.description || undefined });
+      toast.success("Application updated!");
+      setShowAppDialog(false);
+      setEditingApp(null);
+      setAppFormData({ name: "", description: "" });
+      loadApplications();
+    } catch (error) {
+      toast.error(error instanceof Error ? error.message : "Failed to update application");
+    }
+  };
+
+  const handleDeleteApp = async (appId: number) => {
+    try {
+      await api.deleteApplication(appId);
+      toast.success("Application deactivated");
+      loadApplications();
+    } catch (error) {
+      toast.error(error instanceof Error ? error.message : "Failed to delete application");
+    }
+  };
+
+  const openEditDialog = (app: Application) => {
+    setEditingApp(app);
+    setAppFormData({ name: app.name, description: app.description || "" });
+    setShowAppDialog(true);
+  };
+
+  const openCreateDialog = () => {
+    setEditingApp(null);
+    setAppFormData({ name: "", description: "" });
+    setShowAppDialog(true);
+  };
+
+  const handleCreateUser = async () => {
+    if (!userFormData.username || !userFormData.email || !userFormData.password) {
+      toast.error("Please fill in all required fields");
+      return;
+    }
+    setIsCreatingUser(true);
+    try {
+      await api.createUser(userFormData);
+      toast.success("User created successfully!");
+      setShowUserDialog(false);
+      setUserFormData({ username: "", email: "", department: "", password: "" });
+      loadUsers();
+    } catch (error) {
+      toast.error(error instanceof Error ? error.message : "Failed to create user");
+    } finally {
+      setIsCreatingUser(false);
+    }
+  };
+
+  const handleTabChange = (value: string) => {
+    if (value === "overview") {
+      router.push("/admin");
+    } else {
+      router.push(`/admin?tab=${value}`);
+    }
+  };
+
   if (isLoading) {
     return (
       <div className="space-y-6">
@@ -231,13 +364,17 @@ export default function AdminPage() {
         <p className="text-muted-foreground">Review and manage access requests across all applications.</p>
       </div>
 
-      <Tabs defaultValue="overview" className="space-y-6">
+      <Tabs value={activeTab} onValueChange={handleTabChange}>
         <TabsList>
           <TabsTrigger value="overview">Overview</TabsTrigger>
           <TabsTrigger value="pending">Pending Requests</TabsTrigger>
+          <TabsTrigger value="users">Users</TabsTrigger>
+          <TabsTrigger value="applications">Applications</TabsTrigger>
+          <TabsTrigger value="roles">Roles</TabsTrigger>
+          <TabsTrigger value="audit">Audit Log</TabsTrigger>
         </TabsList>
 
-        <TabsContent value="overview" className="space-y-6">
+        <TabsContent value="overview" className="space-y-6 pt-6">
           <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-4">
             <StatCard
               title="Pending"
@@ -317,7 +454,7 @@ export default function AdminPage() {
           </Card>
         </TabsContent>
 
-        <TabsContent value="pending" className="space-y-4">
+        <TabsContent value="pending" className="space-y-4 pt-6">
           {selectedRequests.length > 0 && (
             <Alert>
               <AlertCircle className="size-4" />
@@ -446,6 +583,193 @@ export default function AdminPage() {
             </CardContent>
           </Card>
         </TabsContent>
+
+        <TabsContent value="users" className="space-y-4 pt-6">
+          <Card>
+            <CardHeader>
+              <div className="flex items-center justify-between">
+                <div>
+                  <CardTitle>Users</CardTitle>
+                  <CardDescription>All users in the organization with their access details.</CardDescription>
+                </div>
+                <Button onClick={() => setShowUserDialog(true)}>
+                  <Plus className="size-4" data-icon="inline-start" />
+                  New User
+                </Button>
+              </div>
+              <div className="flex flex-col gap-3 pt-2 sm:flex-row sm:items-center sm:justify-between">
+                <div className="flex items-center gap-2">
+                  <Search className="size-4 text-muted-foreground" />
+                  <Input
+                    placeholder="Search by username, email, or department..."
+                    value={searchTerm}
+                    onChange={(e) => setSearchTerm(e.target.value)}
+                    className="max-w-sm"
+                  />
+                </div>
+              </div>
+            </CardHeader>
+            <CardContent>
+              {isLoadingUsers ? (
+                <div className="space-y-3">
+                  {Array.from({ length: 5 }).map((_, i) => (
+                    <Skeleton key={i} className="h-12 w-full" />
+                  ))}
+                </div>
+              ) : filteredUsers.length === 0 ? (
+                <Empty>
+                  <EmptyTitle>No users found</EmptyTitle>
+                  <EmptyDescription>
+                    {searchTerm ? "No users match your search." : "No users in the system."}
+                  </EmptyDescription>
+                </Empty>
+              ) : (
+                <div className="rounded-md border">
+                  <Table>
+                    <TableHeader>
+                      <TableRow>
+                        <TableHead>User</TableHead>
+                        <TableHead>Email</TableHead>
+                        <TableHead>Department</TableHead>
+                        <TableHead>Role</TableHead>
+                        <TableHead>Status</TableHead>
+                        <TableHead>Active Access</TableHead>
+                      </TableRow>
+                    </TableHeader>
+                    <TableBody>
+                      {filteredUsers.map((u) => (
+                        <TableRow key={u.id}>
+                          <TableCell className="font-medium">{u.username}</TableCell>
+                          <TableCell>
+                            <span className="flex items-center gap-1.5 text-muted-foreground">
+                              <Mail className="size-3" />
+                              {u.email}
+                            </span>
+                          </TableCell>
+                          <TableCell>
+                            {u.department ? (
+                              <span className="flex items-center gap-1.5 text-muted-foreground">
+                                <Building2 className="size-3" />
+                                {u.department}
+                              </span>
+                            ) : (
+                              <span className="text-muted-foreground">—</span>
+                            )}
+                          </TableCell>
+                          <TableCell>
+                            <Badge variant={u.role === "admin" ? "default" : "secondary"}>
+                              {u.role === "admin" ? "Admin" : "User"}
+                            </Badge>
+                          </TableCell>
+                          <TableCell>
+                            <Badge variant={u.status === "active" ? "default" : "outline"}>
+                              {u.status}
+                            </Badge>
+                          </TableCell>
+                          <TableCell className="text-muted-foreground">{u.access_count}</TableCell>
+                        </TableRow>
+                      ))}
+                    </TableBody>
+                  </Table>
+                </div>
+              )}
+            </CardContent>
+          </Card>
+        </TabsContent>
+
+        <TabsContent value="applications" className="space-y-4 pt-6">
+          <Card>
+            <CardHeader>
+              <div className="flex items-center justify-between">
+                <div>
+                  <CardTitle>Applications</CardTitle>
+                  <CardDescription>Manage application entries. Deactivating an app hides it from user requests.</CardDescription>
+                </div>
+                <Button onClick={openCreateDialog}>
+                  <Plus className="size-4" data-icon="inline-start" />
+                  New Application
+                </Button>
+              </div>
+              <div className="flex items-center gap-2 pt-2">
+                <Search className="size-4 text-muted-foreground" />
+                <Input
+                  placeholder="Search applications..."
+                  value={searchTerm}
+                  onChange={(e) => setSearchTerm(e.target.value)}
+                  className="max-w-sm"
+                />
+              </div>
+            </CardHeader>
+            <CardContent>
+              {isLoadingApps ? (
+                <div className="space-y-3">
+                  {Array.from({ length: 3 }).map((_, i) => (
+                    <Skeleton key={i} className="h-12 w-full" />
+                  ))}
+                </div>
+              ) : filteredApps.length === 0 ? (
+                <Empty>
+                  <EmptyTitle>No applications found</EmptyTitle>
+                  <EmptyDescription>
+                    {searchTerm ? "No applications match your search." : "No applications configured yet."}
+                  </EmptyDescription>
+                </Empty>
+              ) : (
+                <div className="rounded-md border">
+                  <Table>
+                    <TableHeader>
+                      <TableRow>
+                        <TableHead>Application</TableHead>
+                        <TableHead>Description</TableHead>
+                        <TableHead>Status</TableHead>
+                        <TableHead>Created</TableHead>
+                        <TableHead className="w-32">Actions</TableHead>
+                      </TableRow>
+                    </TableHeader>
+                    <TableBody>
+                      {filteredApps.map((app) => (
+                        <TableRow key={app.id}>
+                          <TableCell className="font-medium">{app.name}</TableCell>
+                          <TableCell className="max-w-xs truncate text-muted-foreground">
+                            {app.description || "—"}
+                          </TableCell>
+                          <TableCell>
+                            <Badge variant={app.status === "active" ? "default" : "outline"}>
+                              {app.status}
+                            </Badge>
+                          </TableCell>
+                          <TableCell className="text-muted-foreground">
+                            {new Date(app.created_at).toLocaleDateString()}
+                          </TableCell>
+                          <TableCell>
+                            <div className="flex gap-2">
+                              <Button
+                                size="sm"
+                                variant="outline"
+                                onClick={() => openEditDialog(app)}
+                                disabled={app.status === "inactive"}
+                              >
+                                <Pencil className="size-3" data-icon="inline-start" />
+                              </Button>
+                              <Button
+                                size="sm"
+                                variant="outline"
+                                onClick={() => handleDeleteApp(app.id)}
+                                disabled={app.status === "inactive"}
+                              >
+                                <Trash2 className="size-3" data-icon="inline-start" />
+                              </Button>
+                            </div>
+                          </TableCell>
+                        </TableRow>
+                      ))}
+                    </TableBody>
+                  </Table>
+                </div>
+              )}
+            </CardContent>
+          </Card>
+        </TabsContent>
       </Tabs>
 
       <Dialog open={showRejectModal} onOpenChange={setShowRejectModal}>
@@ -472,12 +796,115 @@ export default function AdminPage() {
             <Button variant="outline" onClick={() => setShowRejectModal(false)}>
               Cancel
             </Button>
-              <Button
-                variant="destructive"
-                onClick={handleReject}
-              >
+            <Button
+              variant="destructive"
+              onClick={handleReject}
+            >
               <Trash2 className="size-4" data-icon="inline-start" />
               Reject Request
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      <Dialog open={showAppDialog} onOpenChange={setShowAppDialog}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>{editingApp ? "Edit Application" : "New Application"}</DialogTitle>
+            <DialogDescription>
+              {editingApp
+                ? "Update the application details. Users will see the changes immediately."
+                : "Add a new application that users can request access to."}
+            </DialogDescription>
+          </DialogHeader>
+          <div className="flex flex-col gap-4 py-4">
+            <div className="flex flex-col gap-2">
+              <Label htmlFor="app-name">Name</Label>
+              <Input
+                id="app-name"
+                placeholder="e.g., Salesforce, Jira, GitHub"
+                value={appFormData.name}
+                onChange={(e) => setAppFormData({ ...appFormData, name: e.target.value })}
+              />
+            </div>
+            <div className="flex flex-col gap-2">
+              <Label htmlFor="app-desc">Description</Label>
+              <Textarea
+                id="app-desc"
+                placeholder="Explain the purpose of this application..."
+                value={appFormData.description}
+                onChange={(e) => setAppFormData({ ...appFormData, description: e.target.value })}
+                rows={3}
+              />
+            </div>
+          </div>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setShowAppDialog(false)}>
+              Cancel
+            </Button>
+            <Button onClick={editingApp ? handleUpdateApp : handleCreateApp}>
+              {editingApp ? "Update Application" : "Create Application"}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      <Dialog open={showUserDialog} onOpenChange={setShowUserDialog}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>New User Account</DialogTitle>
+            <DialogDescription>
+              Create a new user profile. They will be able to log in with the credentials provided.
+            </DialogDescription>
+          </DialogHeader>
+          <div className="flex flex-col gap-4 py-4">
+            <div className="grid grid-cols-2 gap-4">
+              <div className="flex flex-col gap-2">
+                <Label htmlFor="username">Username</Label>
+                <Input
+                  id="username"
+                  placeholder="jdoe"
+                  value={userFormData.username}
+                  onChange={(e) => setUserFormData({ ...userFormData, username: e.target.value })}
+                />
+              </div>
+              <div className="flex flex-col gap-2">
+                <Label htmlFor="email">Email</Label>
+                <Input
+                  id="email"
+                  type="email"
+                  placeholder="jdoe@company.com"
+                  value={userFormData.email}
+                  onChange={(e) => setUserFormData({ ...userFormData, email: e.target.value })}
+                />
+              </div>
+            </div>
+            <div className="flex flex-col gap-2">
+              <Label htmlFor="department">Department</Label>
+              <Input
+                id="department"
+                placeholder="Engineering, Finance, HR..."
+                value={userFormData.department}
+                onChange={(e) => setUserFormData({ ...userFormData, department: e.target.value })}
+              />
+            </div>
+            <div className="flex flex-col gap-2">
+              <Label htmlFor="password">Initial Password</Label>
+              <Input
+                id="password"
+                type="password"
+                placeholder="••••••••"
+                value={userFormData.password}
+                onChange={(e) => setUserFormData({ ...userFormData, password: e.target.value })}
+              />
+            </div>
+          </div>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setShowUserDialog(false)}>
+              Cancel
+            </Button>
+            <Button onClick={handleCreateUser} disabled={isCreatingUser}>
+              {isCreatingUser ? "Creating..." : "Create User"}
             </Button>
           </DialogFooter>
         </DialogContent>

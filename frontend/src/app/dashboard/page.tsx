@@ -1,9 +1,10 @@
 "use client";
 
 import { useState, useEffect } from "react";
+import { useSearchParams, useRouter } from "next/navigation";
 import { useAuth } from "@/lib/AuthContext";
 import { api } from "@/lib/api";
-import { Application, AccessRequest, Role } from "@/lib/types";
+import { Application, AccessRequest, Role, UserRole } from "@/lib/types";
 import { toast } from "sonner";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
@@ -34,19 +35,19 @@ import {
 import { Textarea } from "@/components/ui/textarea";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { Separator } from "@/components/ui/separator";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Empty, EmptyDescription, EmptyTitle } from "@/components/ui/empty";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import {
   FileText,
   Clock,
   ShieldCheck,
-  AlertCircle,
   CheckCircle2,
   XCircle,
   FolderOpen,
   Plus,
   Search,
+  Calendar,
 } from "lucide-react";
 
 function StatusBadge({ status }: { status: string }) {
@@ -122,9 +123,13 @@ function StatCardSkeleton() {
 
 export default function DashboardPage() {
   const { user } = useAuth();
+  const searchParams = useSearchParams();
+  const router = useRouter();
+  const activeTab = searchParams.get("tab") || "dashboard";
+
   const [applications, setApplications] = useState<Application[]>([]);
   const [requests, setRequests] = useState<AccessRequest[]>([]);
-  const [myAccess, setMyAccess] = useState<{ id: number }[]>([]);
+  const [myAccess, setMyAccess] = useState<UserRole[]>([]);
   const [selectedApp, setSelectedApp] = useState<Application | null>(null);
   const [roles, setRoles] = useState<Role[]>([]);
   const [showModal, setShowModal] = useState(false);
@@ -194,6 +199,14 @@ export default function DashboardPage() {
   const rejectedCount = requests.filter((r) => r.status === "rejected").length;
   const pendingCount = requests.filter((r) => r.status === "pending").length;
 
+  const handleTabChange = (value: string) => {
+    if (value === "dashboard") {
+      router.push("/dashboard");
+    } else {
+      router.push(`/dashboard?tab=${value}`);
+    }
+  };
+
   if (isLoading) {
     return (
       <div className="space-y-6">
@@ -206,19 +219,6 @@ export default function DashboardPage() {
             <StatCardSkeleton key={i} />
           ))}
         </div>
-        <Card>
-          <CardHeader>
-            <Skeleton className="h-5 w-32" />
-            <Skeleton className="h-9 w-64" />
-          </CardHeader>
-          <CardContent>
-            <div className="space-y-3">
-              {Array.from({ length: 4 }).map((_, i) => (
-                <Skeleton key={i} className="h-12 w-full" />
-              ))}
-            </div>
-          </CardContent>
-        </Card>
       </div>
     );
   }
@@ -230,134 +230,200 @@ export default function DashboardPage() {
         <p className="text-muted-foreground">Manage your application access requests and track their status.</p>
       </div>
 
-      <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3">
-        <StatCard
-          title="Total Requests"
-          value={requests.length}
-          icon={FileText}
-          description="All time requests submitted"
-        />
-        <StatCard
-          title="Pending"
-          value={pendingCount}
-          icon={Clock}
-          description="Awaiting review"
-        />
-        <StatCard
-          title="Approved"
-          value={approvedCount}
-          icon={CheckCircle2}
-          description="Granted access"
-        />
-        <StatCard
-          title="Rejected"
-          value={rejectedCount}
-          icon={XCircle}
-          description="Denied requests"
-        />
-        <StatCard
-          title="Active Access"
-          value={myAccess.length}
-          icon={ShieldCheck}
-          description="Current permissions"
-        />
-        <StatCard
-          title="Applications"
-          value={applications.length}
-          icon={FolderOpen}
-          description="Available to request"
-        />
-      </div>
+      <Tabs value={activeTab} onValueChange={handleTabChange}>
+        <TabsList>
+          <TabsTrigger value="dashboard">Dashboard</TabsTrigger>
+          <TabsTrigger value="my-requests">My Requests</TabsTrigger>
+          <TabsTrigger value="my-access">My Access</TabsTrigger>
+          <TabsTrigger value="applications">Applications</TabsTrigger>
+        </TabsList>
 
-      <Card>
-        <CardHeader>
-          <CardTitle>My Requests</CardTitle>
-          <CardDescription>Track the status of your access requests.</CardDescription>
-          <div className="flex items-center gap-2 pt-2">
-            <Search className="size-4 text-muted-foreground" />
-            <Input
-              placeholder="Search by application, role, or status..."
-              value={searchTerm}
-              onChange={(e) => setSearchTerm(e.target.value)}
-              className="max-w-sm"
+        <TabsContent value="dashboard" className="space-y-6 pt-6">
+          <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3">
+            <StatCard
+              title="Total Requests"
+              value={requests.length}
+              icon={FileText}
+              description="All time requests submitted"
+            />
+            <StatCard
+              title="Pending"
+              value={pendingCount}
+              icon={Clock}
+              description="Awaiting review"
+            />
+            <StatCard
+              title="Approved"
+              value={approvedCount}
+              icon={CheckCircle2}
+              description="Granted access"
+            />
+            <StatCard
+              title="Rejected"
+              value={rejectedCount}
+              icon={XCircle}
+              description="Denied requests"
+            />
+            <StatCard
+              title="Active Access"
+              value={myAccess.length}
+              icon={ShieldCheck}
+              description="Current permissions"
+            />
+            <StatCard
+              title="Applications"
+              value={applications.length}
+              icon={FolderOpen}
+              description="Available to request"
             />
           </div>
-        </CardHeader>
-        <CardContent>
-          {filteredRequests.length === 0 ? (
-            <Empty>
-              <EmptyTitle>No requests found</EmptyTitle>
-              <EmptyDescription>
-                {searchTerm
-                  ? "No requests match your search. Try a different term."
-                  : "You haven't submitted any access requests yet. Browse applications below to get started."}
-              </EmptyDescription>
-            </Empty>
-          ) : (
-            <div className="rounded-md border">
-              <Table>
-                <TableHeader>
-                  <TableRow>
-                    <TableHead>Application</TableHead>
-                    <TableHead>Role</TableHead>
-                    <TableHead>Priority</TableHead>
-                    <TableHead>Status</TableHead>
-                    <TableHead>Request Date</TableHead>
-                  </TableRow>
-                </TableHeader>
-                <TableBody>
-                  {filteredRequests.map((request) => (
-                    <TableRow key={request.id}>
-                      <TableCell className="font-medium">{request.app_name}</TableCell>
-                      <TableCell className="text-muted-foreground">{request.role_name}</TableCell>
-                      <TableCell><PriorityBadge priority={request.priority} /></TableCell>
-                      <TableCell><StatusBadge status={request.status} /></TableCell>
-                      <TableCell className="text-muted-foreground">
-                        {new Date(request.request_date).toLocaleDateString()}
-                      </TableCell>
-                    </TableRow>
-                  ))}
-                </TableBody>
-              </Table>
-            </div>
-          )}
-        </CardContent>
-      </Card>
+        </TabsContent>
 
-      <Card>
-        <CardHeader>
-          <CardTitle>Available Applications</CardTitle>
-          <CardDescription>Request access to applications you need for your work.</CardDescription>
-        </CardHeader>
-        <CardContent>
-          {applications.length === 0 ? (
-            <Empty>
-              <EmptyTitle>No applications available</EmptyTitle>
-              <EmptyDescription>There are no applications available to request access to at this time.</EmptyDescription>
-            </Empty>
-          ) : (
-            <div className="grid grid-cols-1 gap-4 md:grid-cols-2 lg:grid-cols-3">
-              {applications.map((app) => (
-                <button
-                  key={app.id}
-                  onClick={() => handleAppClick(app)}
-                  className="flex flex-col items-start gap-2 rounded-lg border p-4 text-left transition-colors duration-200 hover:bg-accent cursor-pointer"
-                >
-                  <div className="flex size-10 items-center justify-center rounded-lg bg-primary/10">
-                    <FolderOpen className="size-5 text-primary" />
-                  </div>
-                  <div className="flex flex-col gap-0.5">
-                    <h4 className="font-medium">{app.name}</h4>
-                    {app.description && (
-                      <p className="text-sm text-muted-foreground line-clamp-2">{app.description}</p>
-                    )}
-                  </div>
-                </button>
-              ))}
-            </div>
-          )}
-        </CardContent>
-      </Card>
+        <TabsContent value="my-requests" className="space-y-6 pt-6">
+          <Card>
+            <CardHeader>
+              <CardTitle>My Requests</CardTitle>
+              <CardDescription>Track the status of all your access requests.</CardDescription>
+              <div className="flex items-center gap-2 pt-2">
+                <Search className="size-4 text-muted-foreground" />
+                <Input
+                  placeholder="Search by application, role, or status..."
+                  value={searchTerm}
+                  onChange={(e) => setSearchTerm(e.target.value)}
+                  className="max-w-sm"
+                />
+              </div>
+            </CardHeader>
+            <CardContent>
+              {filteredRequests.length === 0 ? (
+                <Empty>
+                  <EmptyTitle>No requests found</EmptyTitle>
+                  <EmptyDescription>
+                    {searchTerm
+                      ? "No requests match your search. Try a different term."
+                      : "You haven't submitted any access requests yet. Browse applications to get started."}
+                  </EmptyDescription>
+                </Empty>
+              ) : (
+                <div className="rounded-md border">
+                  <Table>
+                    <TableHeader>
+                      <TableRow>
+                        <TableHead>Application</TableHead>
+                        <TableHead>Role</TableHead>
+                        <TableHead>Priority</TableHead>
+                        <TableHead>Status</TableHead>
+                        <TableHead>Request Date</TableHead>
+                      </TableRow>
+                    </TableHeader>
+                    <TableBody>
+                      {filteredRequests.map((request) => (
+                        <TableRow key={request.id}>
+                          <TableCell className="font-medium">{request.app_name}</TableCell>
+                          <TableCell className="text-muted-foreground">{request.role_name}</TableCell>
+                          <TableCell><PriorityBadge priority={request.priority} /></TableCell>
+                          <TableCell><StatusBadge status={request.status} /></TableCell>
+                          <TableCell className="text-muted-foreground">
+                            {new Date(request.request_date).toLocaleDateString()}
+                          </TableCell>
+                        </TableRow>
+                      ))}
+                    </TableBody>
+                  </Table>
+                </div>
+              )}
+            </CardContent>
+          </Card>
+        </TabsContent>
+
+        <TabsContent value="my-access" className="space-y-6 pt-6">
+          <Card>
+            <CardHeader>
+              <CardTitle>My Access</CardTitle>
+              <CardDescription>Applications and roles you currently have access to.</CardDescription>
+            </CardHeader>
+            <CardContent>
+              {myAccess.length === 0 ? (
+                <Empty>
+                  <EmptyTitle>No active access</EmptyTitle>
+                  <EmptyDescription>You don't have any active application access yet. Request access from the Applications tab.</EmptyDescription>
+                </Empty>
+              ) : (
+                <div className="rounded-md border">
+                  <Table>
+                    <TableHeader>
+                      <TableRow>
+                        <TableHead>Application</TableHead>
+                        <TableHead>Role</TableHead>
+                        <TableHead>Assigned Date</TableHead>
+                        <TableHead>Expires</TableHead>
+                      </TableRow>
+                    </TableHeader>
+                    <TableBody>
+                      {myAccess.map((access) => (
+                        <TableRow key={access.id}>
+                          <TableCell className="font-medium">{access.app_name}</TableCell>
+                          <TableCell className="text-muted-foreground">{access.role_name}</TableCell>
+                          <TableCell className="text-muted-foreground">
+                            {new Date(access.assigned_at).toLocaleDateString()}
+                          </TableCell>
+                          <TableCell>
+                            {access.expires_at ? (
+                              <span className="flex items-center gap-1 text-muted-foreground">
+                                <Calendar className="size-3" />
+                                {new Date(access.expires_at).toLocaleDateString()}
+                              </span>
+                            ) : (
+                              <Badge variant="outline">No expiry</Badge>
+                            )}
+                          </TableCell>
+                        </TableRow>
+                      ))}
+                    </TableBody>
+                  </Table>
+                </div>
+              )}
+            </CardContent>
+          </Card>
+        </TabsContent>
+
+        <TabsContent value="applications" className="space-y-6 pt-6">
+          <Card>
+            <CardHeader>
+              <CardTitle>Available Applications</CardTitle>
+              <CardDescription>Request access to applications you need for your work.</CardDescription>
+            </CardHeader>
+            <CardContent>
+              {applications.length === 0 ? (
+                <Empty>
+                  <EmptyTitle>No applications available</EmptyTitle>
+                  <EmptyDescription>There are no applications available to request access to at this time.</EmptyDescription>
+                </Empty>
+              ) : (
+                <div className="grid grid-cols-1 gap-4 md:grid-cols-2 lg:grid-cols-3">
+                  {applications.map((app) => (
+                    <button
+                      key={app.id}
+                      onClick={() => handleAppClick(app)}
+                      className="flex flex-col items-start gap-2 rounded-lg border p-4 text-left transition-colors duration-200 hover:bg-accent cursor-pointer"
+                    >
+                      <div className="flex size-10 items-center justify-center rounded-lg bg-primary/10">
+                        <FolderOpen className="size-5 text-primary" />
+                      </div>
+                      <div className="flex flex-col gap-0.5">
+                        <h4 className="font-medium">{app.name}</h4>
+                        {app.description && (
+                          <p className="text-sm text-muted-foreground line-clamp-2">{app.description}</p>
+                        )}
+                      </div>
+                    </button>
+                  ))}
+                </div>
+              )}
+            </CardContent>
+          </Card>
+        </TabsContent>
+      </Tabs>
 
       <Dialog open={showModal} onOpenChange={setShowModal}>
         <DialogContent>
@@ -367,60 +433,71 @@ export default function DashboardPage() {
               Request access to {selectedApp?.name}. Select a role. Justification is optional.
             </DialogDescription>
           </DialogHeader>
-          <form onSubmit={handleSubmitRequest}>
-            <div className="flex flex-col gap-4 py-4">
-              <div className="flex flex-col gap-2">
-                <Label htmlFor="role">Role</Label>
-                <Select value={formData.role_id} onValueChange={(v) => setFormData({ ...formData, role_id: v })}>
-                  <SelectTrigger>
-                    <SelectValue placeholder="Choose a role..." />
-                  </SelectTrigger>
-                  <SelectContent>
-                    {roles.map((role) => (
-                      <SelectItem key={role.id} value={String(role.id)}>
-                        {role.name}
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
-              </div>
-              <div className="flex flex-col gap-2">
-                <Label htmlFor="priority">Priority</Label>
-                <Select value={formData.priority} onValueChange={(v) => setFormData({ ...formData, priority: v })}>
-                  <SelectTrigger>
-                    <SelectValue />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="low">Low</SelectItem>
-                    <SelectItem value="medium">Medium</SelectItem>
-                    <SelectItem value="high">High</SelectItem>
-                  </SelectContent>
-                </Select>
-              </div>
-              <div className="flex flex-col gap-2">
-                <Label htmlFor="justification">Justification</Label>
-                <Textarea
-                  id="justification"
-                  placeholder="Why do you need this access?"
-                  value={formData.justification}
-                  onChange={(e) => setFormData({ ...formData, justification: e.target.value })}
-                  rows={4}
-                />
-              </div>
+          {roles.length === 0 ? (
+            <div className="py-6">
+              <Empty>
+                <EmptyTitle>No roles available</EmptyTitle>
+                <EmptyDescription>
+                  No roles have been configured for this application yet. Contact an administrator to set up roles.
+                </EmptyDescription>
+              </Empty>
             </div>
-            <DialogFooter>
-              <Button type="button" variant="outline" onClick={() => setShowModal(false)}>
-                Cancel
-              </Button>
-              <Button
-                type="submit"
-                disabled={!formData.role_id}
-              >
-                <Plus className="size-4" data-icon="inline-start" />
-                Submit Request
-              </Button>
-            </DialogFooter>
-          </form>
+          ) : (
+            <form onSubmit={handleSubmitRequest}>
+              <div className="flex flex-col gap-4 py-4">
+                <div className="flex flex-col gap-2">
+                  <Label htmlFor="role">Role</Label>
+                  <Select value={formData.role_id} onValueChange={(v) => setFormData({ ...formData, role_id: v })}>
+                    <SelectTrigger>
+                      <SelectValue placeholder="Choose a role..." />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {roles.map((role) => (
+                        <SelectItem key={role.id} value={String(role.id)}>
+                          {role.name}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </div>
+                <div className="flex flex-col gap-2">
+                  <Label htmlFor="priority">Priority</Label>
+                  <Select value={formData.priority} onValueChange={(v) => setFormData({ ...formData, priority: v })}>
+                    <SelectTrigger>
+                      <SelectValue />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="low">Low</SelectItem>
+                      <SelectItem value="medium">Medium</SelectItem>
+                      <SelectItem value="high">High</SelectItem>
+                    </SelectContent>
+                  </Select>
+                </div>
+                <div className="flex flex-col gap-2">
+                  <Label htmlFor="justification">Justification</Label>
+                  <Textarea
+                    id="justification"
+                    placeholder="Why do you need this access?"
+                    value={formData.justification}
+                    onChange={(e) => setFormData({ ...formData, justification: e.target.value })}
+                    rows={4}
+                  />
+                </div>
+              </div>
+              <DialogFooter>
+                <Button type="button" variant="outline" onClick={() => setShowModal(false)}>
+                  Cancel
+                </Button>
+                <Button
+                  type="submit"
+                  disabled={!formData.role_id}
+                >
+                  <Plus className="size-4" data-icon="inline-start" />
+                  Submit Request
+                </Button>
+              </DialogFooter>
+            </form>
+          )}
         </DialogContent>
       </Dialog>
     </div>

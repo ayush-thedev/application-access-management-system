@@ -1,6 +1,7 @@
 "use client";
 
 import { ThemeToggle } from "@/components/ThemeToggle";
+import { NotificationsDropdown } from "@/components/NotificationsDropdown";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import {
   DropdownMenu,
@@ -12,7 +13,7 @@ import {
 } from "@/components/ui/dropdown-menu";
 import { SidebarTrigger } from "@/components/ui/sidebar";
 import { Separator } from "@/components/ui/separator";
-import { Bell, LayoutDashboard, Shield, LogOut, User } from "lucide-react";
+import { LayoutDashboard, Shield, LogOut, User } from "lucide-react";
 import { useAuth } from "@/lib/AuthContext";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
@@ -44,14 +45,7 @@ export function TopBar() {
       </div>
 
       <div className="flex items-center gap-2">
-        <button
-          className="relative inline-flex size-9 items-center justify-center rounded-md hover:bg-accent hover:text-accent-foreground cursor-pointer transition-colors duration-200"
-          aria-label="Notifications"
-        >
-          <Bell className="size-4" />
-          <span className="absolute right-1.5 top-1.5 size-2 rounded-full bg-destructive" />
-        </button>
-
+        <NotificationsDropdown />
         <ThemeToggle />
 
         <DropdownMenu>
